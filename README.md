@@ -35,7 +35,7 @@
 
 Lucky Seven is a real-time online card game for 2 to 8 players. Every player manages a hidden hand, reacts to live turn updates, and tries to finish with the lowest total score. Sevens are worth zero, power cards can swing the board, and Supabase keeps public and private game state synchronized across all players.
 
-Built by Kamal Hazriq and hosted at [luckyseven.site](https://luckyseven.site).
+Built by Kamal Hazriq and Imaduddin. Hosted at [luckyseven.site](https://luckyseven.site).
 
 ## Highlights
 

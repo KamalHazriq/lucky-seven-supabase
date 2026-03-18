@@ -4,9 +4,10 @@ interface PeekModalProps {
   open: boolean
   onSelect: (slotIndex: number) => void
   onCancel: () => void
+  cardsPerPlayer?: number
 }
 
-export default function PeekModal({ open, onSelect, onCancel }: PeekModalProps) {
+export default function PeekModal({ open, onSelect, onCancel, cardsPerPlayer = 3 }: PeekModalProps) {
   return (
     <AnimatePresence>
       {open && (
@@ -31,7 +32,7 @@ export default function PeekModal({ open, onSelect, onCancel }: PeekModalProps) 
             </p>
 
             <div className="flex gap-3 justify-center mb-4">
-              {[0, 1, 2].map((i) => (
+              {Array.from({ length: cardsPerPlayer }, (_, i) => i).map((i) => (
                 <button
                   key={i}
                   onClick={() => onSelect(i)}

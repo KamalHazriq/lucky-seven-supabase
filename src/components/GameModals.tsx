@@ -93,6 +93,7 @@ interface GameModalsProps {
   onOpenDiscardReorder?: () => void
   showMonitor: boolean
   onCloseMonitor: () => void
+  cardsPerPlayer?: number
 }
 
 export default function GameModals({
@@ -111,6 +112,7 @@ export default function GameModals({
   otherPlayers, voteKickActive, onVoteKick, onLeaveGame,
   showDevModal, onCloseDevModal, devMode, onOpenDiscardReorder,
   showMonitor, onCloseMonitor,
+  cardsPerPlayer = 3,
 }: GameModalsProps) {
   return (
     <>
@@ -135,6 +137,7 @@ export default function GameModals({
         open={modal.type === 'peekOne'}
         onSelect={onPeekSelect}
         onCancel={onCancelPower}
+        cardsPerPlayer={cardsPerPlayer}
       />
 
       <PeekResultModal
@@ -203,6 +206,7 @@ export default function GameModals({
         knownCards={myKnown}
         onConfirm={onSwapConfirm}
         onCancel={onCancelPower}
+        cardsPerPlayer={cardsPerPlayer}
       />
 
       <SlotPickerModal
@@ -217,6 +221,7 @@ export default function GameModals({
         slotFilter={(_pid: string, slotIndex: number, pd: PlayerDoc) => !pd.locks[slotIndex]}
         onSelect={onLockSelect}
         onCancel={onCancelPower}
+        cardsPerPlayer={cardsPerPlayer}
       />
 
       <SlotPickerModal
@@ -232,6 +237,7 @@ export default function GameModals({
         onSelect={onUnlockSelect}
         onCancel={onCancelPower}
         noTargetsMessage="No cards are locked."
+        cardsPerPlayer={cardsPerPlayer}
       />
 
       <SlotPickerModal
@@ -247,6 +253,7 @@ export default function GameModals({
         onSelect={onPeekOpponentSelect}
         onCancel={onCancelPower}
         noTargetsMessage="No opponent cards available to peek."
+        cardsPerPlayer={cardsPerPlayer}
       />
 
       <PeekResultModal

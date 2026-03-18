@@ -15,6 +15,8 @@ interface QueenSwapModalProps {
     targetB: { playerId: string; slotIndex: number },
   ) => void
   onCancel: () => void
+  /** Number of cards per player (default 3) */
+  cardsPerPlayer?: number
 }
 
 interface SlotSelection {
@@ -31,7 +33,9 @@ export default function QueenSwapModal({
   knownCards,
   onConfirm,
   onCancel,
+  cardsPerPlayer = 3,
 }: QueenSwapModalProps) {
+  const slots = Array.from({ length: cardsPerPlayer }, (_, i) => i)
   const [selA, setSelA] = useState<SlotSelection | null>(null)
   const [selB, setSelB] = useState<SlotSelection | null>(null)
 
@@ -122,7 +126,7 @@ export default function QueenSwapModal({
                       )}
                     </p>
                     <div className="flex gap-2 justify-center">
-                      {[0, 1, 2].map((i) => {
+                      {slots.map((i) => {
                         const isLocked = pd.locks[i]
                         const isSelectedA = selA?.playerId === pid && selA?.slotIndex === i
                         const isSelectedB = selB?.playerId === pid && selB?.slotIndex === i

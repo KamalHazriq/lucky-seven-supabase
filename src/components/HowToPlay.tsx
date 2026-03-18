@@ -68,7 +68,7 @@ export default function HowToPlay({ variant = 'link' }: { variant?: 'link' | 'la
                   <ul className="space-y-1">
                     <li><span className="text-foreground font-medium">Players:</span> 2–8 players</li>
                     <li><span className="text-foreground font-medium">Objective:</span> Lowest total score wins</li>
-                    <li><span className="text-foreground font-medium">Hand:</span> 3 face-down cards each</li>
+                    <li><span className="text-foreground font-medium">Hand:</span> 3 or 4 face-down cards each</li>
                     <li><span className="text-foreground font-medium">End:</span> Draw pile runs out</li>
                   </ul>
                 </Card>
@@ -101,7 +101,7 @@ export default function HowToPlay({ variant = 'link' }: { variant?: 'link' | 'la
                 <h3 className="font-bold text-emerald-400 text-base mb-2">Power Cards</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {([
-                    { rank: 'Jack', power: 'Peek All', desc: 'View all 3 of your face-down cards', color: 'amber', border: 'border-l-amber-400' },
+                    { rank: 'Jack', power: 'Peek All', desc: 'View all of your face-down cards', color: 'amber', border: 'border-l-amber-400' },
                     { rank: 'Queen', power: 'Swap', desc: 'Swap any two unlocked cards between players', color: 'purple', border: 'border-l-purple-400' },
                     { rank: 'King', power: 'Lock', desc: 'Lock any card — prevents swapping', color: 'red', border: 'border-l-red-400' },
                     { rank: '10', power: 'Unlock', desc: 'Unlock a previously locked card', color: 'cyan', border: 'border-l-cyan-400' },

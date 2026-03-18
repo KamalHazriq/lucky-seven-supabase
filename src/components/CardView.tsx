@@ -64,6 +64,7 @@ function CardView({
   ownerColor,
 }: CardViewProps) {
   const showFace = faceUp && card
+  const isFaceCard = !!card && !card.isJoker && ['J', 'Q', 'K'].includes(card.rank)
   const perfMode = usePerformanceMode()
   const [showTooltip, setShowTooltip] = useState(false)
   const lockerName = lockInfo?.lockerName
@@ -99,9 +100,22 @@ function CardView({
   }, [showTooltip])
 
   // ─── Font sizes per card size ───
-  const suitFontSize = size === 'lg' ? '1.6rem' : size === 'md' ? '1.25rem' : '0.95rem'
-  const rankFontSize = size === 'lg' ? '0.7rem' : size === 'md' ? '0.6rem' : '0.45rem'
-  const cornerSuitSize = size === 'lg' ? '0.55rem' : size === 'md' ? '0.45rem' : '0.35rem'
+  const suitFontSize = size === 'lg'
+    ? (isFaceCard ? '1.45rem' : '1.7rem')
+    : size === 'md'
+      ? (isFaceCard ? '1.15rem' : '1.35rem')
+      : (isFaceCard ? '0.9rem' : '1rem')
+  const rankFontSize = size === 'lg'
+    ? (isFaceCard ? '0.82rem' : '0.78rem')
+    : size === 'md'
+      ? (isFaceCard ? '0.72rem' : '0.66rem')
+      : (isFaceCard ? '0.58rem' : '0.5rem')
+  const centerRankSize = size === 'lg'
+    ? (isFaceCard ? '0.96rem' : '1.08rem')
+    : size === 'md'
+      ? (isFaceCard ? '0.82rem' : '0.78rem')
+      : (isFaceCard ? '0.62rem' : '0.58rem')
+  const cornerSuitSize = size === 'lg' ? '0.62rem' : size === 'md' ? '0.52rem' : '0.4rem'
   const cornerTop = size === 'lg' ? '3px' : '2px'
   const cornerLeft = size === 'lg' ? '4px' : '3px'
 
@@ -203,28 +217,35 @@ function CardView({
                 </span>
               </div>
 
-              {/* Center: large suit icon */}
-              <span
-                className="leading-none"
-                style={{
-                  color: suitColor(card),
-                  fontSize: suitFontSize,
-                }}
-              >
-                {SUIT_SYMBOL[card.suit]}
-              </span>
+              <div className="flex flex-col items-center justify-center" style={{ gap: isFaceCard ? '2px' : '1px' }}>
+                {/* Center: large suit icon */}
+                <span
+                  className="leading-none"
+                  style={{
+                    color: suitColor(card),
+                    fontSize: suitFontSize,
+                  }}
+                >
+                  {SUIT_SYMBOL[card.suit]}
+                </span>
 
-              {/* Rank below suit */}
-              <span
-                className="font-extrabold leading-none"
-                style={{
-                  color: suitColor(card),
-                  fontSize: size === 'lg' ? '0.75rem' : size === 'md' ? '0.6rem' : '0.5rem',
-                  marginTop: '1px',
-                }}
-              >
-                {card.rank}
-              </span>
+                {/* Rank below suit */}
+                <span
+                  className="font-black leading-none tracking-tight"
+                  style={{
+                    color: suitColor(card),
+                    fontSize: centerRankSize,
+                    padding: isFaceCard ? '1px 5px' : undefined,
+                    borderRadius: isFaceCard ? '999px' : undefined,
+                    background: isFaceCard ? 'rgba(15, 23, 42, 0.08)' : undefined,
+                    letterSpacing: isFaceCard ? '0.08em' : '0.01em',
+                    minWidth: isFaceCard ? '1.6em' : undefined,
+                    textAlign: 'center',
+                  }}
+                >
+                  {card.rank}
+                </span>
+              </div>
             </>
           )}
 

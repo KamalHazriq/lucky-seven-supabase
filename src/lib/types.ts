@@ -32,7 +32,7 @@ export type PowerAssignments = Record<PowerRankKey, PowerEffectType>
 
 export const ALL_EFFECT_TYPES: { value: PowerEffectType; label: string }[] = [
   { value: 'peek_one_of_your_cards', label: 'Peek 1 card' },
-  { value: 'peek_all_three_of_your_cards', label: 'Peek all 3 cards' },
+  { value: 'peek_all_three_of_your_cards', label: 'Peek all cards' },
   { value: 'swap_one_to_one', label: 'Swap 1:1' },
   { value: 'lock_one_card', label: 'Lock 1 card' },
   { value: 'unlock_one_locked_card', label: 'Unlock 1 card' },
@@ -50,13 +50,16 @@ export const DEFAULT_POWER_ASSIGNMENTS: PowerAssignments = {
 export type DeckSize = 1 | 1.5 | 2
 
 export type TurnSeconds = 0 | 30 | 60 | 90 | 120 // 0 = unlimited (no timer)
+export type CardsPerPlayer = 3 | 4
 
 export interface GameSettings {
   powerAssignments: PowerAssignments
   jokerCount: number // 1-4
   deckSize: DeckSize // 1 = standard, 1.5 = 1 full + 27 extra, 2 = double deck
   turnSeconds: TurnSeconds // 0 = unlimited, 30/60/90/120
+  cardsPerPlayer: CardsPerPlayer
   peekAllowsOpponent: boolean // When true, peek powers can also target opponent cards
+  noMemoryMode: boolean // When true, peeked cards are shown temporarily and not remembered
 }
 
 export const DEFAULT_GAME_SETTINGS: GameSettings = {
@@ -64,7 +67,9 @@ export const DEFAULT_GAME_SETTINGS: GameSettings = {
   jokerCount: 2,
   deckSize: 1,
   turnSeconds: 0,
+  cardsPerPlayer: 3,
   peekAllowsOpponent: true,
+  noMemoryMode: false,
 }
 
 /** Human-readable effect label for UI */
@@ -131,9 +136,9 @@ export interface PlayerDoc {
   seatIndex: number
   connected: boolean
   /** Public lock state per slot — visible to all players */
-  locks: [boolean, boolean, boolean]
+  locks: boolean[]
   /** Who locked each slot (public metadata) */
-  lockedBy: [LockInfo, LockInfo, LockInfo]
+  lockedBy: LockInfo[]
   /** Optional color key (index into LOBBY_COLORS palette). If set, overrides seat color. */
   colorKey?: number
   /** Consecutive AFK timeout strikes. Reset to 0 on any action. Kicked on 2. */
@@ -192,6 +197,22 @@ export interface DevAccessDoc {
   activatedAt: number
   uid: string
   privileges: DevPrivileges
+}
+
+export function getCardsPerPlayer(settings?: Partial<GameSettings> | null): CardsPerPlayer {
+  return settings?.cardsPerPlayer === 4 ? 4 : 3
+}
+
+export function createEmptyLocks(count: number = DEFAULT_GAME_SETTINGS.cardsPerPlayer): boolean[] {
+  return Array.from({ length: count }, () => false)
+}
+
+export function createEmptyLockedBy(count: number = DEFAULT_GAME_SETTINGS.cardsPerPlayer): LockInfo[] {
+  return Array.from({ length: count }, () => ({ ...EMPTY_LOCK_INFO }))
+}
+
+export function getSlotIndexes(count: number): number[] {
+  return Array.from({ length: count }, (_, i) => i)
 }
 
 /** Returns the PowerRankKey for a card, or null if it has no power */

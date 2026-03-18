@@ -46,7 +46,7 @@ export default function SlotPickerModal({
   const hasAnySelectable = playerOrder.some((pid) => {
     const pd = players[pid]
     if (!pd) return false
-    return [0, 1, 2].some((i) => slotFilter(pid, i, pd))
+    return (pd.locks ?? []).some((_, i) => slotFilter(pid, i, pd))
   })
 
   return (
@@ -99,8 +99,8 @@ export default function SlotPickerModal({
                         </span>
                       )}
                     </p>
-                    <div className="flex gap-2 justify-center">
-                      {[0, 1, 2].map((i) => {
+                    <div className="flex gap-2 justify-center flex-wrap">
+                      {(pd.locks ?? []).map((_, i) => {
                         const selectable = slotFilter(pid, i, pd)
                         const knownCard = isLocal ? knownCards?.[String(i)] : undefined
 

@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import CardView from './CardView'
 import type { Card } from '../lib/types'
@@ -5,10 +6,30 @@ import type { Card } from '../lib/types'
 interface PeekResultModalProps {
   card: Card | null
   slotIndex: number | null
+  autoCloseMs?: number | null
+  temporary?: boolean
   onClose: () => void
 }
 
-export default function PeekResultModal({ card, slotIndex, onClose }: PeekResultModalProps) {
+export default function PeekResultModal({
+  card,
+  slotIndex,
+  autoCloseMs = null,
+  temporary = false,
+  onClose,
+}: PeekResultModalProps) {
+  const onCloseRef = useRef(onClose)
+
+  useEffect(() => {
+    onCloseRef.current = onClose
+  }, [onClose])
+
+  useEffect(() => {
+    if (!card || slotIndex === null || !autoCloseMs) return
+    const timer = setTimeout(() => onCloseRef.current(), autoCloseMs)
+    return () => clearTimeout(timer)
+  }, [card, slotIndex, autoCloseMs])
+
   return (
     <AnimatePresence>
       {card && slotIndex !== null && (
@@ -29,7 +50,9 @@ export default function PeekResultModal({ card, slotIndex, onClose }: PeekResult
               Card #{slotIndex + 1} revealed!
             </h3>
             <p className="text-sm text-slate-400 mb-5">
-              Only you can see this. Remember it!
+              {temporary
+                ? 'Only you can see this. It will hide again shortly.'
+                : 'Only you can see this. Remember it!'}
             </p>
 
             <div className="flex justify-center mb-6">

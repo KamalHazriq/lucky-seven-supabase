@@ -2,11 +2,14 @@ import { motion, AnimatePresence } from 'framer-motion'
 
 interface PeekModalProps {
   open: boolean
+  slotCount: number
   onSelect: (slotIndex: number) => void
   onCancel: () => void
 }
 
-export default function PeekModal({ open, onSelect, onCancel }: PeekModalProps) {
+export default function PeekModal({ open, slotCount, onSelect, onCancel }: PeekModalProps) {
+  const slots = Array.from({ length: slotCount }, (_, i) => i)
+
   return (
     <AnimatePresence>
       {open && (
@@ -30,8 +33,8 @@ export default function PeekModal({ open, onSelect, onCancel }: PeekModalProps) 
               Choose which of your cards to peek at:
             </p>
 
-            <div className="flex gap-3 justify-center mb-4">
-              {[0, 1, 2].map((i) => (
+            <div className="flex gap-3 justify-center mb-4 flex-wrap">
+              {slots.map((i) => (
                 <button
                   key={i}
                   onClick={() => onSelect(i)}

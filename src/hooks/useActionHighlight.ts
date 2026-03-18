@@ -163,8 +163,11 @@ export function useActionHighlight(
       const targetName = rearrangeMatch[1]
       for (const [pid, pd] of Object.entries(playersRef.current)) {
         if (pd.displayName === targetName) {
-          // Highlight all 3 slots
-          newSlotOverlays[pid] = { 0: color.solid, 1: color.solid, 2: color.solid }
+          const overlaySlots: Record<number, string> = {}
+          for (const [i] of (pd.locks ?? []).entries()) {
+            overlaySlots[i] = color.solid
+          }
+          newSlotOverlays[pid] = overlaySlots
         }
       }
     }

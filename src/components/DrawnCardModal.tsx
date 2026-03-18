@@ -7,7 +7,7 @@ import { getCardRankKey, EFFECT_LABELS, DEFAULT_POWER_ASSIGNMENTS } from '../lib
 interface DrawnCardModalProps {
   card: Card | null
   open: boolean
-  locks: [boolean, boolean, boolean]
+  locks: boolean[]
   powerAssignments: PowerAssignments
   spentPowerCardIds: Record<string, boolean>
   /** Player's known cards map (slot index string → Card) */
@@ -40,6 +40,7 @@ export default function DrawnCardModal({
   onDismiss,
   hasAnyLocks = true,
 }: DrawnCardModalProps) {
+  const slotIndexes = locks.map((_, i) => i)
   const rankKey = card ? getCardRankKey(card) : null
   const effectType = rankKey ? (powerAssignments ?? DEFAULT_POWER_ASSIGNMENTS)[rankKey] : null
   const effectInfo = effectType ? EFFECT_LABELS[effectType] : null
@@ -135,8 +136,8 @@ export default function DrawnCardModal({
               <p className="text-[11px] text-center mb-2 font-medium uppercase tracking-wide" style={{ color: 'var(--text-dim)' }}>
                 Your cards
               </p>
-              <div className="flex gap-2 justify-center">
-                {[0, 1, 2].map((i) => {
+              <div className="flex gap-2 justify-center flex-wrap">
+                {slotIndexes.map((i) => {
                   const known = knownCards[String(i)]
                   return (
                     <div key={i} className="flex flex-col items-center gap-1">
@@ -158,8 +159,8 @@ export default function DrawnCardModal({
                 Swap with one of your cards, discard{effectInfo ? ', or use its power.' : '.'}
               </p>
 
-              <div className="flex gap-2 justify-center mb-3">
-                {[0, 1, 2].map((i) => (
+              <div className="flex gap-2 justify-center mb-3 flex-wrap">
+                {slotIndexes.map((i) => (
                   <button
                     key={i}
                     onClick={() => onSwap(i)}

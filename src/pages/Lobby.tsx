@@ -5,7 +5,7 @@ import toast from 'react-hot-toast'
 import { useAuth } from '../hooks/useAuth'
 import { useGame } from '../hooks/useGame'
 import { startGame, updatePlayerProfile, leaveLobby, updateGameSettings } from '../lib/supabaseGameService'
-import type { TurnSeconds, PowerRankKey, PowerEffectType } from '../lib/types'
+import type { TurnSeconds, PowerRankKey, PowerEffectType, CardsPerPlayer } from '../lib/types'
 import { ALL_EFFECT_TYPES } from '../lib/types'
 import VersionLabel from '../components/VersionLabel'
 import FeedbackModal from '../components/FeedbackModal'
@@ -186,10 +186,28 @@ export default function Lobby() {
     }
   }
 
+  const handleSetCardsPerPlayer = async (count: CardsPerPlayer) => {
+    if (!gameId) return
+    try {
+      await updateGameSettings(gameId, { cardsPerPlayer: count })
+    } catch (e) {
+      toast.error((e as Error).message)
+    }
+  }
+
   const handleSetJokerCount = async (count: number) => {
     if (!gameId) return
     try {
       await updateGameSettings(gameId, { jokerCount: count })
+    } catch (e) {
+      toast.error((e as Error).message)
+    }
+  }
+
+  const handleSetNoMemoryMode = async (enabled: boolean) => {
+    if (!gameId) return
+    try {
+      await updateGameSettings(gameId, { noMemoryMode: enabled })
     } catch (e) {
       toast.error((e as Error).message)
     }
@@ -570,6 +588,30 @@ export default function Lobby() {
                       </p>
                     </div>
 
+                    <div className="ls-form-group">
+                      <Label className="text-muted-foreground">Cards Per Player</Label>
+                      <div className="flex gap-2">
+                        {([3, 4] as CardsPerPlayer[]).map((count) => (
+                          <motion.button
+                            key={count}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => handleSetCardsPerPlayer(count)}
+                            className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                              game.settings.cardsPerPlayer === count
+                                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
+                                : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                            }`}
+                          >
+                            {count} cards
+                          </motion.button>
+                        ))}
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">
+                        {game.settings.cardsPerPlayer === 3 ? 'Classic setup' : 'Extended mode with 4 cards per player'}
+                      </p>
+                    </div>
+
                     {/* Power Settings accordion */}
                     <div className="rounded-xl border border-border-subtle overflow-hidden">
                       <motion.button
@@ -645,6 +687,34 @@ export default function Lobby() {
                                   ))}
                                 </div>
                                 <p className="text-[10px] text-muted-foreground">Default: 2 (standard deck)</p>
+                              </div>
+
+                              <div className="ls-form-group">
+                                <Label className="text-violet-300">
+                                  No Memory After Peek
+                                </Label>
+                                <div className="flex gap-2">
+                                  {([false, true] as const).map((enabled) => (
+                                    <motion.button
+                                      key={String(enabled)}
+                                      whileHover={{ scale: 1.05 }}
+                                      whileTap={{ scale: 0.95 }}
+                                      onClick={() => handleSetNoMemoryMode(enabled)}
+                                      className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                                        game.settings.noMemoryMode === enabled
+                                          ? 'bg-violet-600 text-white'
+                                          : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                                      }`}
+                                    >
+                                      {enabled ? 'On' : 'Off'}
+                                    </motion.button>
+                                  ))}
+                                </div>
+                                <p className="text-[10px] text-muted-foreground">
+                                  {game.settings.noMemoryMode
+                                    ? 'Peeked cards hide again automatically and are not remembered'
+                                    : 'Peeked cards stay known after you use a peek power'}
+                                </p>
                               </div>
 
                               <div className="bg-surface-panel rounded-lg p-2">

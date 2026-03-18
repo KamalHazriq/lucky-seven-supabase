@@ -11,7 +11,7 @@ import PatchNotesModal from '../components/PatchNotesModal'
 import GameStats from '../components/GameStats'
 import StrategyTips from '../components/StrategyTips'
 import { trackEvent } from '../lib/analytics'
-import type { PowerAssignments, PowerEffectType, PowerRankKey, DeckSize, TurnSeconds } from '../lib/types'
+import type { PowerAssignments, PowerEffectType, PowerRankKey, DeckSize, TurnSeconds, CardsPerPlayer } from '../lib/types'
 import { DEFAULT_GAME_SETTINGS, ALL_EFFECT_TYPES, DEFAULT_POWER_ASSIGNMENTS } from '../lib/types'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -86,7 +86,9 @@ export default function Home() {
   const [jokerCount, setJokerCount] = useState(DEFAULT_GAME_SETTINGS.jokerCount)
   const [deckSize, setDeckSize] = useState<DeckSize>(DEFAULT_GAME_SETTINGS.deckSize)
   const [turnSeconds, setTurnSeconds] = useState<TurnSeconds>(DEFAULT_GAME_SETTINGS.turnSeconds)
+  const [cardsPerPlayer, setCardsPerPlayer] = useState<CardsPerPlayer>(DEFAULT_GAME_SETTINGS.cardsPerPlayer)
   const [peekAllowsOpponent, setPeekAllowsOpponent] = useState(DEFAULT_GAME_SETTINGS.peekAllowsOpponent)
+  const [noMemoryMode, setNoMemoryMode] = useState(DEFAULT_GAME_SETTINGS.noMemoryMode)
 
   const updateAssignment = (key: PowerRankKey, value: PowerEffectType) => {
     setAssignments((prev) => ({ ...prev, [key]: value }))
@@ -102,7 +104,9 @@ export default function Home() {
         jokerCount,
         deckSize,
         turnSeconds,
+        cardsPerPlayer,
         peekAllowsOpponent,
+        noMemoryMode,
       })
       trackEvent('create_game', { player_count: maxPlayers, deck_size: deckSize, turn_seconds: turnSeconds }, gameId)
       navigate(`/lobby/${gameId}`)
@@ -333,6 +337,30 @@ export default function Home() {
                   </div>
 
                   <div className="ls-form-group">
+                    <Label>Cards Per Player</Label>
+                    <div className="flex gap-2">
+                      {([3, 4] as CardsPerPlayer[]).map((count) => (
+                        <motion.button
+                          key={count}
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => setCardsPerPlayer(count)}
+                          className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+                            cardsPerPlayer === count
+                              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
+                              : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                          }`}
+                        >
+                          {count} cards
+                        </motion.button>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      {cardsPerPlayer === 3 ? 'Classic setup' : 'Extended mode with 4 cards per player'}
+                    </p>
+                  </div>
+
+                  <div className="ls-form-group">
                     <Label>Turn Timer</Label>
                     <div className="flex gap-1.5">
                       {([0, 30, 60, 90, 120] as TurnSeconds[]).map((ts) => (
@@ -452,6 +480,34 @@ export default function Home() {
                               </div>
                               <p className="text-[10px] text-muted-foreground">
                                 {peekAllowsOpponent ? 'Peek powers can target your cards OR opponent cards' : 'Peek powers only peek your own cards (default)'}
+                              </p>
+                            </div>
+
+                            <div className="ls-form-group">
+                              <Label className="text-violet-300">
+                                No Memory After Peek
+                              </Label>
+                              <div className="flex gap-2">
+                                {([false, true] as const).map((val) => (
+                                  <motion.button
+                                    key={String(val)}
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => setNoMemoryMode(val)}
+                                    className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                                      noMemoryMode === val
+                                        ? 'bg-violet-600 text-white'
+                                        : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                                    }`}
+                                  >
+                                    {val ? 'On' : 'Off'}
+                                  </motion.button>
+                                ))}
+                              </div>
+                              <p className="text-[10px] text-muted-foreground">
+                                {noMemoryMode
+                                  ? 'Peeked cards hide again automatically and are not remembered'
+                                  : 'Peeked cards stay known after you use a peek power'}
                               </p>
                             </div>
 

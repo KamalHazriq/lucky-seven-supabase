@@ -37,7 +37,7 @@ const RANK_COLORS: Record<PowerRankKey, string> = {
 
 const EFFECT_FRIENDLY: Record<PowerEffectType, string> = {
   peek_one_of_your_cards: 'Peek 1 of your cards',
-  peek_all_three_of_your_cards: 'Peek all 3 cards (locked hidden)',
+  peek_all_three_of_your_cards: 'Peek all of your cards (locked hidden)',
   swap_one_to_one: 'Swap 1:1 cards between any players',
   lock_one_card: 'Lock 1 card (prevents swapping)',
   unlock_one_locked_card: 'Unlock 1 locked card',

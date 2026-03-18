@@ -2,6 +2,7 @@ import { memo, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import CardView from './CardView'
 import type { Card, PrivatePlayerDoc, LockInfo } from '../lib/types'
+import { createEmptyLockedBy, createEmptyLocks } from '../lib/types'
 import { getPlayerColor } from '../lib/playerColors'
 import type { SelectionTargetType, SelectedTarget } from '../hooks/useSelectionMode'
 import { isSlotSelectable } from '../hooks/useSelectionMode'
@@ -20,8 +21,8 @@ interface PlayerPanelProps {
   privateState?: PrivatePlayerDoc | null
   seatIndex: number
   connected: boolean
-  locks: [boolean, boolean, boolean]
-  lockedBy?: [LockInfo, LockInfo, LockInfo]
+  locks: boolean[]
+  lockedBy?: LockInfo[]
   onSlotClick?: (slotIndex: number) => void
   slotClickable?: boolean
   /** Temporary action highlight — pulsing colored ring with label */
@@ -64,12 +65,6 @@ interface PlayerPanelProps {
   chaosAnimation?: boolean
 }
 
-const EMPTY_LOCKED_BY: [LockInfo, LockInfo, LockInfo] = [
-  { lockerId: null, lockerName: null },
-  { lockerId: null, lockerName: null },
-  { lockerId: null, lockerName: null },
-]
-
 function PlayerPanel({
   displayName,
   playerId,
@@ -101,13 +96,15 @@ function PlayerPanel({
   localPrivateState,
   chaosAnimation = false,
 }: PlayerPanelProps) {
+  const slotCount = locks.length > 0 ? locks.length : 3
   const hand = privateState?.hand ?? []
   const known = privateState?.known ?? {}
   // Dev mode: use actual hand data for remote players if available
   const devHand = !isLocalPlayer ? devAllHands?.[playerId]?.hand : undefined
   // Opponent knowledge: cards this local player has peeked from this opponent
   const opponentKnown = !isLocalPlayer ? (localPrivateState?.opponent_known?.[playerId] ?? {}) : {}
-  const lockInfos = lockedBy ?? EMPTY_LOCKED_BY
+  const lockInfos = lockedBy ?? createEmptyLockedBy(slotCount)
+  const slotIndexes = useMemo(() => (locks.length > 0 ? locks : createEmptyLocks(slotCount)).map((_, i) => i), [locks, slotCount])
   const color = useMemo(() => getPlayerColor(seatIndex, colorKey), [seatIndex, colorKey])
   const perfMode = usePerformanceMode()
 
@@ -121,7 +118,7 @@ function PlayerPanel({
 
   // Dim the entire panel if in selection mode and no slots are selectable here
   const panelDimmed = inSelectionMode && !isPlayerTarget && !isSelectedPlayer && localPlayerId && players
-    ? ![0, 1, 2].some((i) =>
+    ? !slotIndexes.some((i) =>
         isSlotSelectable(selectionTargetType!, playerId, i, localPlayerId, players),
       )
     : false
@@ -247,8 +244,8 @@ function PlayerPanel({
         )}
       </div>
 
-      <div className={`flex ${isLocalPlayer ? 'gap-3' : 'gap-1.5 sm:gap-2'} justify-center overflow-visible`}>
-        {[0, 1, 2].map((i) => {
+      <div className={`flex ${isLocalPlayer ? 'gap-3' : 'gap-1.5 sm:gap-2'} justify-center overflow-visible flex-wrap`}>
+        {slotIndexes.map((i) => {
           const card = hand[i] as Card | undefined
           // Own known: from game_private_state.known (self peek, swap)
           // Dev visibility: show all own cards when dev canSeeAllCards is active
@@ -379,7 +376,7 @@ function PlayerPanel({
                 known
                 locked={isLocked}
                 lockInfo={isLocked ? lockInfo : null}
-                size={isLocalPlayer ? 'md' : 'sm'}
+                size={isLocalPlayer && slotCount > 3 ? 'sm' : isLocalPlayer ? 'md' : 'sm'}
                 onClick={(slotClickable || (inSelectionMode && slotSelectable)) ? handleSlotClick : undefined}
                 highlight={(slotClickable && !isLocked && !inSelectionMode) || (inSelectionMode && slotSelectable) || isSelected || isSecondSelected}
                 disabled={(slotClickable && isLocked && !inSelectionMode) || (inSelectionMode && !slotSelectable && !isSelected && !isSecondSelected)}
@@ -397,7 +394,7 @@ function PlayerPanel({
               faceUp={!!devCard}
               locked={isLocked}
               lockInfo={isLocked ? lockInfo : null}
-              size={isLocalPlayer ? 'md' : 'sm'}
+              size={isLocalPlayer && slotCount > 3 ? 'sm' : isLocalPlayer ? 'md' : 'sm'}
               onClick={(slotClickable && isLocalPlayer && !inSelectionMode) || (inSelectionMode && slotSelectable)
                 ? handleSlotClick : undefined}
               highlight={(slotClickable && isLocalPlayer && !isLocked && !inSelectionMode) || (inSelectionMode && slotSelectable) || isSelected || isSecondSelected}

@@ -1,14 +1,22 @@
 import { useEffect, useRef, useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { cardDisplay, suitColor } from '../lib/deck'
 import type { Card } from '../lib/types'
-import { CARD_FLIP_SPRING, LAYOUT_SPRING } from '../lib/motionTokens'
 
 interface DiscardFlipProps {
+  /** Current discard top card */
   discardTop: Card | null
+  /** Whether reduced motion is active */
   reduced: boolean
 }
 
+/**
+ * DiscardFlip — 3D flip-reveal when a new card becomes the discard top.
+ * Detects discardTop id change and plays a satisfying flip-in animation.
+ *
+ * v1.5: Slightly longer reveal (600ms flip), stronger shadow during flip,
+ * gentle overshoot scale on landing for a "satisfying drop" feel.
+ */
 export default function DiscardFlip({ discardTop, reduced }: DiscardFlipProps) {
   const prevIdRef = useRef<string | null>(null)
   const [flipCard, setFlipCard] = useState<Card | null>(null)
@@ -19,6 +27,7 @@ export default function DiscardFlip({ discardTop, reduced }: DiscardFlipProps) {
     const oldId = prevIdRef.current
 
     if (newId && newId !== oldId && oldId !== null) {
+      // New discard top appeared — trigger flip reveal
       setFlipCard(discardTop)
       setShowFlip(true)
       const timer = setTimeout(() => {
@@ -30,6 +39,7 @@ export default function DiscardFlip({ discardTop, reduced }: DiscardFlipProps) {
     prevIdRef.current = newId
   }, [discardTop, reduced])
 
+  // Update prevId when discardTop changes even without animation
   useEffect(() => {
     prevIdRef.current = discardTop?.id ?? null
   }, [discardTop?.id])
@@ -39,10 +49,10 @@ export default function DiscardFlip({ discardTop, reduced }: DiscardFlipProps) {
       <AnimatePresence>
         {showFlip && flipCard && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.96, y: 4 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.98 }}
-            transition={{ duration: 0.22, ease: 'easeOut' }}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
             className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none"
           >
             <div className="w-full h-full rounded-xl bg-white border border-slate-200 flex items-center justify-center shadow-lg">
@@ -60,56 +70,27 @@ export default function DiscardFlip({ discardTop, reduced }: DiscardFlipProps) {
     <AnimatePresence>
       {showFlip && flipCard && (
         <motion.div
-          initial={{ opacity: 0, scale: 0.92, y: 8 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.96, y: -6 }}
-          transition={LAYOUT_SPRING}
+          initial={{ rotateY: 180, scale: 0.78, opacity: 0.7 }}
+          animate={{ rotateY: 0, scale: 1, opacity: 1 }}
+          exit={{ opacity: 0, scale: 0.92 }}
+          transition={{
+            rotateY: { type: 'spring', stiffness: 140, damping: 18, mass: 1.0 },
+            scale: { type: 'spring', stiffness: 200, damping: 16, mass: 0.8 },
+            opacity: { duration: 0.2 },
+          }}
           className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none"
-          style={{ perspective: '1100px' }}
+          style={{ perspective: '800px', backfaceVisibility: 'hidden' }}
         >
-          <motion.div
-            initial={{ rotateY: 180, rotateX: -12 }}
-            animate={{ rotateY: 0, rotateX: 0 }}
-            exit={{ rotateY: -24, opacity: 0.6 }}
-            transition={CARD_FLIP_SPRING}
-            className="relative w-full h-full rounded-xl"
+          <div
+            className="w-full h-full rounded-xl bg-white border border-slate-200 flex items-center justify-center"
             style={{
-              transformStyle: 'preserve-3d',
-              boxShadow: '0 14px 34px rgba(0,0,0,0.35), 0 6px 14px rgba(0,0,0,0.2)',
+              boxShadow: '0 12px 36px rgba(0,0,0,0.4), 0 6px 16px rgba(0,0,0,0.2)',
             }}
           >
-            <div
-              className="absolute inset-0 rounded-xl bg-gradient-to-br from-blue-900 via-blue-800 to-blue-950 border border-blue-700/50"
-              style={{
-                backfaceVisibility: 'hidden',
-                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)',
-              }}
-            >
-              <div className="flex items-center justify-center h-full">
-                <div className="w-7 h-7 rounded-full border border-blue-300/20 bg-blue-300/8 flex items-center justify-center">
-                  <span className="font-bold text-base text-blue-300/40">7</span>
-                </div>
-              </div>
-            </div>
-
-            <div
-              className="absolute inset-0 rounded-xl bg-white border border-slate-200 flex items-center justify-center"
-              style={{
-                transform: 'rotateY(180deg)',
-                backfaceVisibility: 'hidden',
-              }}
-            >
-              <motion.span
-                initial={{ opacity: 0.3, scale: 0.94 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={LAYOUT_SPRING}
-                className="font-black text-sm tracking-tight"
-                style={{ color: suitColor(flipCard) }}
-              >
-                {cardDisplay(flipCard)}
-              </motion.span>
-            </div>
-          </motion.div>
+            <span className="font-bold text-sm" style={{ color: suitColor(flipCard) }}>
+              {cardDisplay(flipCard)}
+            </span>
+          </div>
         </motion.div>
       )}
     </AnimatePresence>

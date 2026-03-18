@@ -7,7 +7,6 @@ import { getPlayerColor } from '../lib/playerColors'
 import type { SelectionTargetType, SelectedTarget } from '../hooks/useSelectionMode'
 import { isSlotSelectable } from '../hooks/useSelectionMode'
 import { usePerformanceMode } from '../hooks/usePerformanceMode'
-import { CARD_LAYOUT_SPRING, LAYOUT_SPRING, fadeUp, staggeredChildren } from '../lib/motionTokens'
 
 export interface ActionHighlight {
   color: string
@@ -143,15 +142,9 @@ function PlayerPanel({
     }
     ${isSelectedPlayer ? 'ring-2 ring-amber-400 bg-amber-900/30 shadow-lg shadow-amber-500/20' : isPlayerTarget ? 'cursor-pointer ring-2 ring-amber-400/60 hover:ring-amber-300 bg-amber-900/20 shadow-lg shadow-amber-500/10 selection-pulse-panel' : ''}
   `, [isLocalPlayer, isCurrentTurn, panelDimmed, isPlayerTarget, isSelectedPlayer, perfMode])
-  const handVariants = useMemo(() => staggeredChildren(perfMode ? 0.02 : 0.04), [perfMode])
-  const cardSlotVariants = useMemo(() => fadeUp(perfMode ? 4 : 8), [perfMode])
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: perfMode ? 4 : 10, scale: 0.985 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={LAYOUT_SPRING}
+    <div
       className={panelClassName}
       style={panelStyle}
       onClick={isPlayerTarget ? () => onPlayerSelect?.(playerId) : undefined}
@@ -161,10 +154,10 @@ function PlayerPanel({
         {chatBubble && (
           <motion.div
             key={chatBubble}
-            initial={{ opacity: 0, y: 10, scale: 0.92 }}
+            initial={{ opacity: 0, y: 8, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -8, scale: 0.92 }}
-            transition={LAYOUT_SPRING}
+            exit={{ opacity: 0, y: -6, scale: 0.9 }}
+            transition={{ type: 'spring', damping: 20, stiffness: 300 }}
             className="absolute left-0 right-0 pointer-events-none"
             style={{ bottom: 'calc(100% + 10px)', zIndex: 50 }}
           >
@@ -184,7 +177,6 @@ function PlayerPanel({
           initial={{ opacity: 0, scale: 0.97 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0 }}
-          transition={LAYOUT_SPRING}
           className="absolute inset-0 rounded-2xl pointer-events-none z-10 action-pulse-ring"
           style={{
             boxShadow: `inset 0 0 0 2.5px ${actionHighlight.color}, 0 0 16px ${actionHighlight.color}, 0 0 32px ${actionHighlight.color}20`,
@@ -206,7 +198,7 @@ function PlayerPanel({
             initial={{ opacity: 0, scale: 2, rotate: -15 }}
             animate={{ opacity: 1, scale: 1, rotate: 0 }}
             exit={{ opacity: 0, scale: 0.8 }}
-            transition={LAYOUT_SPRING}
+            transition={{ type: 'spring', damping: 12, stiffness: 300 }}
             className="absolute inset-0 z-30 pointer-events-none flex items-center justify-center"
           >
             <div className={`text-4xl ${stampOverlay === 'lock' ? 'text-red-400' : 'text-cyan-400'} drop-shadow-lg`}>
@@ -252,13 +244,7 @@ function PlayerPanel({
         )}
       </div>
 
-      <motion.div
-        layout="position"
-        variants={handVariants}
-        initial="hidden"
-        animate="visible"
-        className={`flex ${isLocalPlayer ? 'gap-3' : 'gap-1.5 sm:gap-2'} justify-center overflow-visible flex-wrap`}
-      >
+      <div className={`flex ${isLocalPlayer ? 'gap-3' : 'gap-1.5 sm:gap-2'} justify-center overflow-visible flex-wrap`}>
         {slotIndexes.map((i) => {
           const card = hand[i] as Card | undefined
           // Own known: from game_private_state.known (self peek, swap)
@@ -295,55 +281,41 @@ function PlayerPanel({
           }
 
           const slotWrapper = (child: React.ReactNode) => (
-            <motion.div
-              key={i}
-              layout="position"
-              variants={cardSlotVariants}
-              transition={CARD_LAYOUT_SPRING}
-              className={`relative${chaosAnimation ? ' chaos-shuffle' : ''}`}
-              data-slot={i}
-              style={chaosAnimation ? { animationDelay: `${i * 80}ms` } as React.CSSProperties : undefined}
-            >
+            <div key={i} className={`relative${chaosAnimation ? ' chaos-shuffle' : ''}`} data-slot={i} style={chaosAnimation ? { animationDelay: `${i * 80}ms` } as React.CSSProperties : undefined}>
               {child}
 
               {/* Effect overlay (action highlights) */}
-              <AnimatePresence initial={false}>
-                {slotColor && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.96 }}
-                    transition={CARD_LAYOUT_SPRING}
-                    className="absolute inset-0 rounded-xl pointer-events-none z-10 slot-pulse-ring"
-                    style={{
-                      boxShadow: `inset 0 0 0 2px ${slotColor}, 0 0 12px ${slotColor}80, 0 0 24px ${slotColor}30`,
-                    }}
-                  />
-                )}
-              </AnimatePresence>
+              {slotColor && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 rounded-xl pointer-events-none z-10 slot-pulse-ring"
+                  style={{
+                    boxShadow: `inset 0 0 0 2px ${slotColor}, 0 0 12px ${slotColor}80, 0 0 24px ${slotColor}30`,
+                  }}
+                />
+              )}
 
               {/* Swap label — shows swap partner (e.g. "↔ Kamal #2") */}
-              <AnimatePresence initial={false}>
-                {swapLabel && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 6, scale: 0.88 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -6, scale: 0.94 }}
-                    transition={LAYOUT_SPRING}
-                    className="absolute -top-6 left-1/2 -translate-x-1/2 z-20 pointer-events-none whitespace-nowrap"
+              {swapLabel && (
+                <motion.div
+                  initial={{ opacity: 0, y: 4, scale: 0.85 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  className="absolute -top-6 left-1/2 -translate-x-1/2 z-20 pointer-events-none whitespace-nowrap"
+                >
+                  <span
+                    className="px-2 py-0.5 rounded-md text-[9px] font-bold shadow-lg"
+                    style={{
+                      backgroundColor: slotColor ? slotColor : color.solid,
+                      color: '#fff',
+                    }}
                   >
-                    <span
-                      className="px-2 py-0.5 rounded-md text-[9px] font-bold shadow-lg"
-                      style={{
-                        backgroundColor: slotColor ? slotColor : color.solid,
-                        color: '#fff',
-                      }}
-                    >
-                      {swapLabel}
-                    </span>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                    {swapLabel}
+                  </span>
+                </motion.div>
+              )}
 
               {/* Selection mode: selectable pulse ring — CSS animation, no JS frame scheduling */}
               {inSelectionMode && slotSelectable && !isSelected && !isSecondSelected && (
@@ -358,7 +330,6 @@ function PlayerPanel({
                   <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    transition={CARD_LAYOUT_SPRING}
                     className={`absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center z-20 shadow-lg ${isSecondSelected && !isSelected ? 'bg-emerald-500' : 'bg-amber-500'}`}
                   >
                     <span className="text-[10px] text-white font-bold">{isSecondSelected && !isSelected ? '2' : '1'}</span>
@@ -366,7 +337,6 @@ function PlayerPanel({
                   <motion.div
                     initial={{ opacity: 0, y: 4 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={LAYOUT_SPRING}
                     className="absolute -bottom-5 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap"
                   >
                     <span className={`px-1.5 py-0.5 text-white text-[8px] font-bold rounded-md shadow-sm ${isSecondSelected && !isSelected ? 'bg-emerald-500/90' : 'bg-amber-500/90'}`}>
@@ -394,7 +364,7 @@ function PlayerPanel({
                   Known
                 </span>
               )}
-            </motion.div>
+            </div>
           )
 
           // Show face-up if: local player knows own card, dev mode shows all, or local player peeked this opponent slot
@@ -434,8 +404,8 @@ function PlayerPanel({
             />,
           )
         })}
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   )
 }
 

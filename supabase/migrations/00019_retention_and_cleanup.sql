@@ -136,11 +136,11 @@ $$;
 --   - Step added: aggregate_analytics_daily() before pruning analytics
 --   - Step added: prune_client_error_logs()
 CREATE OR REPLACE FUNCTION public.run_maintenance(
-  p_chat_days      INT DEFAULT 21,
-  p_history_days   INT DEFAULT 21,
-  p_games_days     INT DEFAULT 60,
-  p_analytics_days INT DEFAULT 45,
-  p_error_log_days INT DEFAULT 90
+  p_chat_days      INT DEFAULT 7,
+  p_history_days   INT DEFAULT 7,
+  p_games_days     INT DEFAULT 14,
+  p_analytics_days INT DEFAULT 14,
+  p_error_log_days INT DEFAULT 30
 )
 RETURNS JSONB
 LANGUAGE plpgsql

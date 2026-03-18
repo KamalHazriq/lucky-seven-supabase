@@ -6,7 +6,7 @@ interface PeekAllModalProps {
   open: boolean
   /** Map of slotIndex -> revealed card (locked slots are omitted) */
   revealedCards: Record<number, Card>
-  locks: [boolean, boolean, boolean]
+  locks: boolean[]
   onClose: () => void
 }
 

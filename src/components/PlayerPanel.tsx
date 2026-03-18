@@ -20,8 +20,8 @@ interface PlayerPanelProps {
   privateState?: PrivatePlayerDoc | null
   seatIndex: number
   connected: boolean
-  locks: [boolean, boolean, boolean]
-  lockedBy?: [LockInfo, LockInfo, LockInfo]
+  locks: boolean[]
+  lockedBy?: LockInfo[]
   onSlotClick?: (slotIndex: number) => void
   slotClickable?: boolean
   /** Temporary action highlight — pulsing colored ring with label */
@@ -62,13 +62,11 @@ interface PlayerPanelProps {
   localPrivateState?: PrivatePlayerDoc | null
   /** Chaos shuffle animation — when true, cards do a lift-rotate-shuffle-settle animation */
   chaosAnimation?: boolean
+  /** Number of card slots per player (3 or 4) — default 3 */
+  cardsPerPlayer?: number
 }
 
-const EMPTY_LOCKED_BY: [LockInfo, LockInfo, LockInfo] = [
-  { lockerId: null, lockerName: null },
-  { lockerId: null, lockerName: null },
-  { lockerId: null, lockerName: null },
-]
+const EMPTY_LOCK_INFO: LockInfo = { lockerId: null, lockerName: null }
 
 function PlayerPanel({
   displayName,
@@ -100,6 +98,7 @@ function PlayerPanel({
   devShowAllCards = false,
   localPrivateState,
   chaosAnimation = false,
+  cardsPerPlayer = 3,
 }: PlayerPanelProps) {
   const hand = privateState?.hand ?? []
   const known = privateState?.known ?? {}
@@ -107,7 +106,7 @@ function PlayerPanel({
   const devHand = !isLocalPlayer ? devAllHands?.[playerId]?.hand : undefined
   // Opponent knowledge: cards this local player has peeked from this opponent
   const opponentKnown = !isLocalPlayer ? (localPrivateState?.opponent_known?.[playerId] ?? {}) : {}
-  const lockInfos = lockedBy ?? EMPTY_LOCKED_BY
+  const lockInfos = lockedBy ?? []
   const color = useMemo(() => getPlayerColor(seatIndex, colorKey), [seatIndex, colorKey])
   const perfMode = usePerformanceMode()
 
@@ -121,7 +120,7 @@ function PlayerPanel({
 
   // Dim the entire panel if in selection mode and no slots are selectable here
   const panelDimmed = inSelectionMode && !isPlayerTarget && !isSelectedPlayer && localPlayerId && players
-    ? ![0, 1, 2].some((i) =>
+    ? !Array.from({ length: cardsPerPlayer }, (_, i) => i).some((i) =>
         isSlotSelectable(selectionTargetType!, playerId, i, localPlayerId, players),
       )
     : false
@@ -248,7 +247,7 @@ function PlayerPanel({
       </div>
 
       <div className={`flex ${isLocalPlayer ? 'gap-3' : 'gap-1.5 sm:gap-2'} justify-center overflow-visible`}>
-        {[0, 1, 2].map((i) => {
+        {Array.from({ length: cardsPerPlayer }, (_, i) => i).map((i) => {
           const card = hand[i] as Card | undefined
           // Own known: from game_private_state.known (self peek, swap)
           // Dev visibility: show all own cards when dev canSeeAllCards is active
@@ -258,8 +257,8 @@ function PlayerPanel({
           const oppKnownCard = !isLocalPlayer ? opponentKnown[String(i)] : undefined
           const knownCard = ownKnownCard ?? devKnownCard ?? oppKnownCard
           const isKnown = !!knownCard
-          const isLocked = locks[i]
-          const lockInfo = lockInfos[i]
+          const isLocked = locks[i] ?? false
+          const lockInfo = lockInfos[i] ?? EMPTY_LOCK_INFO
           const slotColor = slotOverlays?.[i]
           const swapLabel = swapLabels?.[i]
 

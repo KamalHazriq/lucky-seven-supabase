@@ -87,6 +87,8 @@ export default function Home() {
   const [deckSize, setDeckSize] = useState<DeckSize>(DEFAULT_GAME_SETTINGS.deckSize)
   const [turnSeconds, setTurnSeconds] = useState<TurnSeconds>(DEFAULT_GAME_SETTINGS.turnSeconds)
   const [peekAllowsOpponent, setPeekAllowsOpponent] = useState(DEFAULT_GAME_SETTINGS.peekAllowsOpponent)
+  const [cardsPerPlayer, setCardsPerPlayer] = useState<3 | 4>(DEFAULT_GAME_SETTINGS.cardsPerPlayer)
+  const [noMemoryMode, setNoMemoryMode] = useState(DEFAULT_GAME_SETTINGS.noMemoryMode)
 
   const updateAssignment = (key: PowerRankKey, value: PowerEffectType) => {
     setAssignments((prev) => ({ ...prev, [key]: value }))
@@ -103,6 +105,8 @@ export default function Home() {
         deckSize,
         turnSeconds,
         peekAllowsOpponent,
+        cardsPerPlayer,
+        noMemoryMode,
       })
       trackEvent('create_game', { player_count: maxPlayers, deck_size: deckSize, turn_seconds: turnSeconds }, gameId)
       navigate(`/lobby/${gameId}`)
@@ -452,6 +456,56 @@ export default function Home() {
                               </div>
                               <p className="text-[10px] text-muted-foreground">
                                 {peekAllowsOpponent ? 'Peek powers can target your cards OR opponent cards' : 'Peek powers only peek your own cards (default)'}
+                              </p>
+                            </div>
+
+                            <div className="ls-form-group">
+                              <Label className="text-emerald-300">
+                                Cards Per Player
+                              </Label>
+                              <div className="flex gap-2">
+                                {([3, 4] as const).map((n) => (
+                                  <motion.button
+                                    key={n}
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => setCardsPerPlayer(n)}
+                                    className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                                      cardsPerPlayer === n
+                                        ? 'bg-emerald-600 text-white'
+                                        : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                                    }`}
+                                  >
+                                    {n} cards
+                                  </motion.button>
+                                ))}
+                              </div>
+                              <p className="text-[10px] text-muted-foreground">Default: 3 cards per player</p>
+                            </div>
+
+                            <div className="ls-form-group">
+                              <Label className="text-rose-300">
+                                No Memory Mode
+                              </Label>
+                              <div className="flex gap-2">
+                                {([false, true] as const).map((val) => (
+                                  <motion.button
+                                    key={String(val)}
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => setNoMemoryMode(val)}
+                                    className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                                      noMemoryMode === val
+                                        ? 'bg-rose-600 text-white'
+                                        : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                                    }`}
+                                  >
+                                    {val ? 'On' : 'Off'}
+                                  </motion.button>
+                                ))}
+                              </div>
+                              <p className="text-[10px] text-muted-foreground">
+                                {noMemoryMode ? 'Peeked cards shown briefly — not stored in memory' : 'Peeked cards are remembered (default)'}
                               </p>
                             </div>
 

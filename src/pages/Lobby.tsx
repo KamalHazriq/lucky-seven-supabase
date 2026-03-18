@@ -206,6 +206,24 @@ export default function Lobby() {
     }
   }
 
+  const handleSetCardsPerPlayer = async (count: 3 | 4) => {
+    if (!gameId) return
+    try {
+      await updateGameSettings(gameId, { cardsPerPlayer: count })
+    } catch (e) {
+      toast.error((e as Error).message)
+    }
+  }
+
+  const handleSetNoMemoryMode = async (val: boolean) => {
+    if (!gameId) return
+    try {
+      await updateGameSettings(gameId, { noMemoryMode: val })
+    } catch (e) {
+      toast.error((e as Error).message)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -645,6 +663,58 @@ export default function Lobby() {
                                   ))}
                                 </div>
                                 <p className="text-[10px] text-muted-foreground">Default: 2 (standard deck)</p>
+                              </div>
+
+                              {/* Cards per player */}
+                              <div className="ls-form-group">
+                                <Label className="text-emerald-300">
+                                  Cards Per Player
+                                </Label>
+                                <div className="flex gap-2">
+                                  {([3, 4] as const).map((n) => (
+                                    <motion.button
+                                      key={n}
+                                      whileHover={{ scale: 1.05 }}
+                                      whileTap={{ scale: 0.95 }}
+                                      onClick={() => handleSetCardsPerPlayer(n)}
+                                      className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                                        (game.settings.cardsPerPlayer ?? 3) === n
+                                          ? 'bg-emerald-600 text-white'
+                                          : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                                      }`}
+                                    >
+                                      {n} cards
+                                    </motion.button>
+                                  ))}
+                                </div>
+                                <p className="text-[10px] text-muted-foreground">Default: 3 cards per player</p>
+                              </div>
+
+                              {/* No Memory Mode */}
+                              <div className="ls-form-group">
+                                <Label className="text-rose-300">
+                                  No Memory Mode
+                                </Label>
+                                <div className="flex gap-2">
+                                  {([false, true] as const).map((val) => (
+                                    <motion.button
+                                      key={String(val)}
+                                      whileHover={{ scale: 1.05 }}
+                                      whileTap={{ scale: 0.95 }}
+                                      onClick={() => handleSetNoMemoryMode(val)}
+                                      className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                                        !!(game.settings.noMemoryMode) === val
+                                          ? 'bg-rose-600 text-white'
+                                          : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                                      }`}
+                                    >
+                                      {val ? 'On' : 'Off'}
+                                    </motion.button>
+                                  ))}
+                                </div>
+                                <p className="text-[10px] text-muted-foreground">
+                                  {game.settings.noMemoryMode ? 'Peeked cards shown briefly — not stored in memory' : 'Peeked cards are remembered (default)'}
+                                </p>
                               </div>
 
                               <div className="bg-surface-panel rounded-lg p-2">

@@ -61,7 +61,7 @@ export type ModalState =
   | { type: 'peekOpponent' }
   | { type: 'peekOpponentResult'; card: Card; playerName: string; slot: number }
   | { type: 'peekAllOpponent' }
-  | { type: 'peekAllOpponentResult'; cards: Record<number, Card>; playerName: string; locks: [boolean, boolean, boolean] }
+  | { type: 'peekAllOpponentResult'; cards: Record<number, Card>; playerName: string; locks: boolean[] }
   | { type: 'none' }
 
 // ─── Hook params ─────────────────────────────────────────────
@@ -78,7 +78,7 @@ interface UseGameActionsParams {
 
   // Private state
   privateState: PrivatePlayerDoc | null
-  myLocks: [boolean, boolean, boolean]
+  myLocks: boolean[]
 
   // UI mode
   uiMode: 'modal' | 'actionbar'
@@ -125,6 +125,8 @@ interface UseGameActionsParams {
 
   // Settings
   peekAllowsOpponent: boolean
+  noMemoryMode: boolean
+  cardsPerPlayer: number
 }
 
 interface UseGameActionsReturn {
@@ -167,7 +169,7 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
     onPlayerArrival, reconstructStaging, resetChoreo,
     triggerFly, flushQueue,
     selection, isSelecting, startSelection, selectTarget, confirmSelection,
-    setStampOverlays, discardTop, peekAllowsOpponent,
+    setStampOverlays, discardTop, peekAllowsOpponent, noMemoryMode, cardsPerPlayer,
   } = params
 
   const [busy, setBusy] = useState(false)
@@ -353,7 +355,7 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
       switch (effectType) {
         case 'peek_all_three_of_your_cards':
           withBusy(async () => {
-            const cards = await peekAll(gameId!)
+            const cards = await peekAll(gameId!, noMemoryMode)
             playSfx('peekAll')
             setModal({ type: 'peekAll', cards })
           })
@@ -382,7 +384,7 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
       case 'peek_all_three_of_your_cards':
         setModal({ type: 'none' })
         withBusy(async () => {
-          const cards = await peekAll(gameId!)
+          const cards = await peekAll(gameId!, noMemoryMode)
           playSfx('peekAll')
           setModal({ type: 'peekAll', cards })
         })
@@ -415,7 +417,7 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
       if (effectType === 'peek_all_three_of_your_cards') {
         setModal({ type: 'none' })
         withBusy(async () => {
-          const cards = await peekAll(gameId!)
+          const cards = await peekAll(gameId!, noMemoryMode)
           playSfx('peekAll')
           setModal({ type: 'peekAll', cards })
         })
@@ -427,7 +429,7 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
       if (effectType === 'peek_all_three_of_your_cards') {
         setModal({ type: 'none' })
         withBusy(async () => {
-          const cards = await peekAll(gameId!)
+          const cards = await peekAll(gameId!, noMemoryMode)
           playSfx('peekAll')
           setModal({ type: 'peekAll', cards })
         })
@@ -464,14 +466,14 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
     switch (targetType) {
       case 'yourSlot':
         withBusy(async () => {
-          const card = await peekOne(gameId!, first.slotIndex)
+          const card = await peekOne(gameId!, first.slotIndex, noMemoryMode)
           playSfx('peek')
           if (reduced) {
             setModal({ type: 'peekResult', card, slot: first.slotIndex })
           } else {
             setPeekReveal({ slot: first.slotIndex, card })
             if (peekTimerRef.current) clearTimeout(peekTimerRef.current)
-            peekTimerRef.current = setTimeout(() => setPeekReveal(null), 2000)
+            peekTimerRef.current = setTimeout(() => setPeekReveal(null), noMemoryMode ? 5000 : 2000)
           }
         })
         break
@@ -535,7 +537,7 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
   const handlePeekSelect = (slotIndex: number) => {
     setModal({ type: 'none' })
     withBusy(async () => {
-      const card = await peekOne(gameId!, slotIndex)
+      const card = await peekOne(gameId!, slotIndex, noMemoryMode)
       setModal({ type: 'peekResult', card, slot: slotIndex })
       playSfx('peek')
     })
@@ -567,7 +569,7 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
   const handlePeekOpponentSelect = (targetPlayerId: string, slotIndex: number) => {
     setModal({ type: 'none' })
     withBusy(async () => {
-      const { card, playerName } = await peekOpponent(gameId!, targetPlayerId, slotIndex)
+      const { card, playerName } = await peekOpponent(gameId!, targetPlayerId, slotIndex, noMemoryMode)
       playSfx('peek')
       setModal({ type: 'peekOpponentResult', card, playerName, slot: slotIndex })
     })
@@ -576,7 +578,7 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
   const handlePeekAllOpponentSelect = (targetPlayerId: string) => {
     setModal({ type: 'none' })
     withBusy(async () => {
-      const { cards, playerName, locks } = await peekAllOpponent(gameId!, targetPlayerId)
+      const { cards, playerName, locks } = await peekAllOpponent(gameId!, targetPlayerId, noMemoryMode)
       playSfx('peekAll')
       setModal({ type: 'peekAllOpponentResult', cards, playerName, locks })
     })
@@ -604,7 +606,7 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
 
       if (uiMode === 'actionbar' && hasDrawnCard && isActionPhase && modal.type === 'none' && !drawnCardDismissed) {
         const num = parseInt(e.key)
-        if (num >= 1 && num <= 3) {
+        if (num >= 1 && num <= cardsPerPlayer) {
           const slotIdx = num - 1
           if (!myLocks[slotIdx]) {
             e.preventDefault()
@@ -626,6 +628,7 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
     isDesktop, isMyTurn, isSpectator, isSelecting, selection.phase, uiMode,
     hasDrawnCard, isActionPhase, modal.type, drawnCardDismissed,
     myLocks, handleSelectionConfirm, handleSwap, handleCancelDraw, privateState?.drawnCardSource,
+    cardsPerPlayer,
   ])
 
   return {

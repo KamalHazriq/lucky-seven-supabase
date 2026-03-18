@@ -8,7 +8,7 @@ import type { SelectionModeState, SelectedTarget } from '../hooks/useSelectionMo
 interface ActionBarProps {
   card: Card | null
   visible: boolean
-  locks: [boolean, boolean, boolean]
+  locks: boolean[]
   powerAssignments: PowerAssignments
   spentPowerCardIds: Record<string, boolean>
   drawnCardSource: DrawnCardSource

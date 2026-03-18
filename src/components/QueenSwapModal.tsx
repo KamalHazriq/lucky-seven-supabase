@@ -121,8 +121,8 @@ export default function QueenSwapModal({
                         </span>
                       )}
                     </p>
-                    <div className="flex gap-2 justify-center flex-wrap">
-                      {(pd.locks ?? []).map((_, i) => {
+                    <div className="flex gap-2 justify-center">
+                      {[0, 1, 2].map((i) => {
                         const isLocked = pd.locks[i]
                         const isSelectedA = selA?.playerId === pid && selA?.slotIndex === i
                         const isSelectedB = selB?.playerId === pid && selB?.slotIndex === i

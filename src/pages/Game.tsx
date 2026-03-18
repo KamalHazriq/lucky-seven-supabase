@@ -42,7 +42,7 @@ import { useRemoteAnimations } from '../hooks/useRemoteAnimations'
 import { useGameActions } from '../hooks/useGameActions'
 import { copyToClipboard } from '../lib/share'
 import type { Card } from '../lib/types'
-import { DEFAULT_GAME_SETTINGS, createEmptyLocks, getCardsPerPlayer } from '../lib/types'
+import { DEFAULT_GAME_SETTINGS } from '../lib/types'
 
 export default function Game() {
   const { gameId } = useParams<{ gameId: string }>()
@@ -184,9 +184,7 @@ export default function Game() {
   const isDrawPhase = isMyTurn && turnPhase === 'draw'
   const isActionPhase = isMyTurn && turnPhase === 'action'
   const myPlayer = user ? players[user.uid] : null
-  const cardsPerPlayer = getCardsPerPlayer(game?.settings)
-  const noMemoryMode = game?.settings?.noMemoryMode ?? DEFAULT_GAME_SETTINGS.noMemoryMode
-  const myLocks = myPlayer?.locks ?? createEmptyLocks(cardsPerPlayer)
+  const myLocks = (myPlayer?.locks ?? [false, false, false]) as [boolean, boolean, boolean]
   const powerAssignments = game?.settings?.powerAssignments ?? DEFAULT_GAME_SETTINGS.powerAssignments
   const spentPowerCardIds = game?.spentPowerCardIds ?? {}
   const myKnown = privateState?.known ?? {}
@@ -695,7 +693,7 @@ export default function Game() {
                         seatIndex={players[pid]?.seatIndex ?? 0}
                         colorKey={players[pid]?.colorKey}
                         connected={players[pid]?.connected ?? false}
-                        locks={players[pid]?.locks ?? createEmptyLocks(cardsPerPlayer)}
+                        locks={players[pid]?.locks ?? [false, false, false]}
                         lockedBy={players[pid]?.lockedBy}
                         actionHighlight={actionHighlights[pid] ?? null}
                         chatBubble={chatBubbles[pid] ?? null}
@@ -705,7 +703,6 @@ export default function Game() {
                         stampOverlay={stampOverlays[pid] ?? null}
                         chaosAnimation={!!chaosAnimations[pid]}
                         devAllHands={devMode.isDevMode && devMode.privileges?.canSeeAllCards ? devMode.allPlayerHands : null}
-                        localPrivateState={privateState}
                         {...selectionProps}
                       />
                       {game.currentTurnPlayerId === pid && turnTimer.remaining !== null && (
@@ -810,7 +807,7 @@ export default function Game() {
                       seatIndex={players[pid]?.seatIndex ?? 0}
                       colorKey={players[pid]?.colorKey}
                       connected={players[pid]?.connected ?? false}
-                      locks={players[pid]?.locks ?? createEmptyLocks(cardsPerPlayer)}
+                      locks={players[pid]?.locks ?? [false, false, false]}
                       lockedBy={players[pid]?.lockedBy}
                       actionHighlight={actionHighlights[pid] ?? null}
                       chatBubble={chatBubbles[pid] ?? null}
@@ -820,7 +817,6 @@ export default function Game() {
                       stampOverlay={stampOverlays[pid] ?? null}
                       chaosAnimation={!!chaosAnimations[pid]}
                       devAllHands={devMode.isDevMode && devMode.privileges?.canSeeAllCards ? devMode.allPlayerHands : null}
-                      localPrivateState={privateState}
                       {...selectionProps}
                     />
                     {isTheirTurn && turnTimer.remaining !== null && (
@@ -989,8 +985,6 @@ export default function Game() {
         spentPowerCardIds={spentPowerCardIds}
         drawnCardSource={privateState?.drawnCardSource ?? null}
         hasAnyLocks={hasAnyLocks}
-        cardsPerPlayer={cardsPerPlayer}
-        noMemoryMode={noMemoryMode}
         uiMode={uiMode}
         drawnCardDismissed={drawnCardDismissed}
         onSwap={handleSwap}

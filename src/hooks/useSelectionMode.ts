@@ -54,7 +54,7 @@ export function isSlotSelectable(
 ): boolean {
   const pd = players[playerId]
   if (!pd) return false
-  const locks = pd.locks ?? []
+  const locks = pd.locks ?? [false, false, false]
 
   switch (targetType) {
     case 'yourSlot':
@@ -88,7 +88,7 @@ export function isPlayerSelectable(
     return playerId !== localPlayerId
   }
   // Check if at least one slot is selectable
-  return (players[playerId]?.locks ?? []).some((_, i) =>
+  return [0, 1, 2].some((i) =>
     isSlotSelectable(targetType, playerId, i, localPlayerId, players),
   )
 }

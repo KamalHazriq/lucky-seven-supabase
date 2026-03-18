@@ -15,7 +15,6 @@ import DevPanel from './DevPanel'
 import type { ModalState } from '../hooks/useGameActions'
 import type { Card, GameDoc, PlayerDoc, PowerEffectType, PowerRankKey, DrawnCardSource, DevPrivileges, PrivatePlayerDoc } from '../lib/types'
 import type { DEFAULT_GAME_SETTINGS } from '../lib/types'
-import { createEmptyLocks } from '../lib/types'
 
 interface GameModalsProps {
   // Modal state
@@ -32,14 +31,12 @@ interface GameModalsProps {
   isMyTurn: boolean
   hasDrawnCard: boolean
   drawnCard: Card | null
-  myLocks: boolean[]
+  myLocks: [boolean, boolean, boolean]
   myKnown: Record<string, Card>
   powerAssignments: typeof DEFAULT_GAME_SETTINGS.powerAssignments
   spentPowerCardIds: Record<string, boolean>
   drawnCardSource: DrawnCardSource
   hasAnyLocks: boolean
-  cardsPerPlayer: number
-  noMemoryMode: boolean
   uiMode: 'modal' | 'actionbar'
   drawnCardDismissed: boolean
 
@@ -103,7 +100,7 @@ export default function GameModals({
   game, players, localPlayerId, modalPlayerOrder,
   isMyTurn, hasDrawnCard, drawnCard,
   myLocks, myKnown, powerAssignments, spentPowerCardIds, drawnCardSource,
-  hasAnyLocks, cardsPerPlayer, noMemoryMode, uiMode, drawnCardDismissed,
+  hasAnyLocks, uiMode, drawnCardDismissed,
   onSwap, onDiscard, onUsePower, onCancelDraw, onDismissDrawn,
   onPeekSelect, onSwapConfirm, onLockSelect, onUnlockSelect, onRearrangeSelect, onPeekOpponentSelect, onPeekAllOpponentSelect,
   onPeekChoiceSelf, onPeekChoiceOpponent, onCancelPower,
@@ -136,7 +133,6 @@ export default function GameModals({
 
       <PeekModal
         open={modal.type === 'peekOne'}
-        slotCount={cardsPerPlayer}
         onSelect={onPeekSelect}
         onCancel={onCancelPower}
       />
@@ -144,8 +140,6 @@ export default function GameModals({
       <PeekResultModal
         card={modal.type === 'peekResult' ? modal.card : null}
         slotIndex={modal.type === 'peekResult' ? modal.slot : null}
-        autoCloseMs={noMemoryMode ? 2500 : null}
-        temporary={noMemoryMode}
         onClose={() => setModal({ type: 'none' })}
       />
 
@@ -153,8 +147,6 @@ export default function GameModals({
         open={modal.type === 'peekAll'}
         revealedCards={modal.type === 'peekAll' ? modal.cards : {}}
         locks={myLocks}
-        autoCloseMs={noMemoryMode ? 4000 : null}
-        temporary={noMemoryMode}
         onClose={() => setModal({ type: 'none' })}
       />
 
@@ -260,8 +252,6 @@ export default function GameModals({
       <PeekResultModal
         card={modal.type === 'peekOpponentResult' ? modal.card : null}
         slotIndex={modal.type === 'peekOpponentResult' ? modal.slot : null}
-        autoCloseMs={noMemoryMode ? 2500 : null}
-        temporary={noMemoryMode}
         onClose={() => setModal({ type: 'none' })}
       />
 
@@ -270,7 +260,6 @@ export default function GameModals({
         players={players}
         playerOrder={modalPlayerOrder}
         localPlayerId={localPlayerId}
-        cardsPerPlayer={cardsPerPlayer}
         onSelect={onPeekAllOpponentSelect}
         onCancel={onCancelPower}
       />
@@ -278,10 +267,8 @@ export default function GameModals({
       <PeekAllOpponentModal
         open={modal.type === 'peekAllOpponentResult'}
         revealedCards={modal.type === 'peekAllOpponentResult' ? modal.cards : {}}
-        locks={modal.type === 'peekAllOpponentResult' ? modal.locks : createEmptyLocks(cardsPerPlayer)}
+        locks={modal.type === 'peekAllOpponentResult' ? modal.locks : [false, false, false]}
         playerName={modal.type === 'peekAllOpponentResult' ? modal.playerName : ''}
-        autoCloseMs={noMemoryMode ? 4000 : null}
-        temporary={noMemoryMode}
         onClose={() => setModal({ type: 'none' })}
       />
 

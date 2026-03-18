@@ -7,12 +7,6 @@
 import type {
   GameDoc, PlayerDoc, PrivatePlayerDoc, PlayerScore, ChatMessage, LockInfo,
 } from './types'
-import {
-  DEFAULT_GAME_SETTINGS,
-  DEFAULT_POWER_ASSIGNMENTS,
-  createEmptyLockedBy,
-  createEmptyLocks,
-} from './types'
 
 const EMPTY_LOCK: LockInfo = { lockerId: null, lockerName: null }
 
@@ -24,15 +18,6 @@ export function mapGameRow(r: Row): GameDoc {
   const spentArr: string[] = r.spent_power_card_ids ?? []
   const spent: Record<string, boolean> = {}
   for (const id of spentArr) spent[id] = true
-  const rawSettings = (r.settings ?? {}) as Partial<GameDoc['settings']>
-  const settings = {
-    ...DEFAULT_GAME_SETTINGS,
-    ...rawSettings,
-    powerAssignments: {
-      ...DEFAULT_POWER_ASSIGNMENTS,
-      ...(rawSettings.powerAssignments ?? {}),
-    },
-  }
 
   return {
     status: r.status,
@@ -51,7 +36,7 @@ export function mapGameRow(r: Row): GameDoc {
     joinCode: r.join_code,
     actionVersion: r.action_version,
     lastActionAt: r.last_action_at,
-    settings,
+    settings: r.settings,
     spentPowerCardIds: spent,
     turnStartAt: r.turn_start_at,
     voteKick: r.vote_kick ?? null,
@@ -60,18 +45,17 @@ export function mapGameRow(r: Row): GameDoc {
 }
 
 export function mapPlayerRow(r: Row): PlayerDoc {
-  const locks: boolean[] = Array.isArray(r.locks) && r.locks.length > 0
-    ? r.locks
-    : createEmptyLocks()
-  const lockedByRaw: (LockInfo | null)[] = Array.isArray(r.locked_by)
-    ? r.locked_by
-    : createEmptyLockedBy(locks.length)
+  const lockedByRaw: (LockInfo | null)[] = r.locked_by ?? [null, null, null]
   return {
     displayName: r.display_name,
     seatIndex: r.seat_index,
     connected: r.connected,
-    locks,
-    lockedBy: locks.map((_, i) => lockedByRaw[i] ?? EMPTY_LOCK),
+    locks: r.locks ?? [false, false, false],
+    lockedBy: [
+      lockedByRaw[0] ?? EMPTY_LOCK,
+      lockedByRaw[1] ?? EMPTY_LOCK,
+      lockedByRaw[2] ?? EMPTY_LOCK,
+    ],
     colorKey: r.color_key ?? undefined,
     afkStrikes: r.afk_strikes ?? undefined,
   }
@@ -83,7 +67,6 @@ export function mapPrivateStateRow(r: Row): PrivatePlayerDoc {
     drawnCard: r.drawn_card ?? null,
     drawnCardSource: r.drawn_card_source ?? null,
     known: r.known ?? {},
-    opponent_known: r.opponent_known ?? {},
   }
 }
 

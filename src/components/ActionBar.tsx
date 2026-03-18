@@ -8,7 +8,7 @@ import type { SelectionModeState, SelectedTarget } from '../hooks/useSelectionMo
 interface ActionBarProps {
   card: Card | null
   visible: boolean
-  locks: boolean[]
+  locks: [boolean, boolean, boolean]
   powerAssignments: PowerAssignments
   spentPowerCardIds: Record<string, boolean>
   drawnCardSource: DrawnCardSource
@@ -58,7 +58,6 @@ function ActionBar({
   players,
   hasAnyLocks = true,
 }: ActionBarProps) {
-  const slotIndexes = useMemo(() => locks.map((_, i) => i), [locks])
   const rankKey = useMemo(() => card ? getCardRankKey(card) : null, [card])
   const effectType = useMemo(() => rankKey ? (powerAssignments ?? DEFAULT_POWER_ASSIGNMENTS)[rankKey] : null, [rankKey, powerAssignments])
   const effectInfo = useMemo(() => effectType ? EFFECT_LABELS[effectType] : null, [effectType])
@@ -187,7 +186,7 @@ function ActionBar({
                         Swap with slot
                       </p>
                       <div className="flex gap-1.5">
-                        {slotIndexes.map((i) => (
+                        {[0, 1, 2].map((i) => (
                           <button
                             key={i}
                             onClick={() => onSwap(i)}

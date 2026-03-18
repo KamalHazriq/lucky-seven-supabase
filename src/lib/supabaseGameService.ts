@@ -47,9 +47,7 @@ export async function createGame(
     jokerCount: settings?.jokerCount ?? DEFAULT_GAME_SETTINGS.jokerCount,
     deckSize: settings?.deckSize ?? DEFAULT_GAME_SETTINGS.deckSize,
     turnSeconds: settings?.turnSeconds ?? DEFAULT_GAME_SETTINGS.turnSeconds,
-    cardsPerPlayer: settings?.cardsPerPlayer ?? DEFAULT_GAME_SETTINGS.cardsPerPlayer,
     peekAllowsOpponent: settings?.peekAllowsOpponent ?? DEFAULT_GAME_SETTINGS.peekAllowsOpponent,
-    noMemoryMode: settings?.noMemoryMode ?? DEFAULT_GAME_SETTINGS.noMemoryMode,
   }
 
   const { data, error } = await supabase.rpc('create_game', {
@@ -288,7 +286,7 @@ export async function usePeekOpponent(
 export async function usePeekAllOpponent(
   gameId: string,
   targetPlayerId: string,
-): Promise<{ cards: Record<number, Card>; playerName: string; locks: boolean[] }> {
+): Promise<{ cards: Record<number, Card>; playerName: string; locks: [boolean, boolean, boolean] }> {
   await ensureAuth()
 
   const { data, error } = await supabase.rpc('use_peek_all_opponent', {
@@ -297,7 +295,7 @@ export async function usePeekAllOpponent(
   })
 
   if (error) throw new Error(error.message)
-  return data as { cards: Record<number, Card>; playerName: string; locks: boolean[] }
+  return data as { cards: Record<number, Card>; playerName: string; locks: [boolean, boolean, boolean] }
 }
 
 // ─── Swap Power (Queen) ─────────────────────────────────────────
@@ -555,9 +553,7 @@ export async function playAgain(
     jokerCount: settings?.jokerCount ?? DEFAULT_GAME_SETTINGS.jokerCount,
     deckSize: settings?.deckSize ?? DEFAULT_GAME_SETTINGS.deckSize,
     turnSeconds: settings?.turnSeconds ?? DEFAULT_GAME_SETTINGS.turnSeconds,
-    cardsPerPlayer: settings?.cardsPerPlayer ?? DEFAULT_GAME_SETTINGS.cardsPerPlayer,
     peekAllowsOpponent: settings?.peekAllowsOpponent ?? DEFAULT_GAME_SETTINGS.peekAllowsOpponent,
-    noMemoryMode: settings?.noMemoryMode ?? DEFAULT_GAME_SETTINGS.noMemoryMode,
   }
 
   const { data, error } = await supabase.rpc('play_again', {

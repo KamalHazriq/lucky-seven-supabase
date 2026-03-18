@@ -6,7 +6,6 @@ interface PeekAllOpponentPickerModalProps {
   players: Record<string, PlayerDoc>
   playerOrder: string[]
   localPlayerId: string
-  cardsPerPlayer: number
   onSelect: (targetPlayerId: string) => void
   onCancel: () => void
 }
@@ -16,7 +15,6 @@ export default function PeekAllOpponentPickerModal({
   players,
   playerOrder,
   localPlayerId,
-  cardsPerPlayer,
   onSelect,
   onCancel,
 }: PeekAllOpponentPickerModalProps) {
@@ -39,10 +37,10 @@ export default function PeekAllOpponentPickerModal({
             className="bg-slate-800 border border-indigo-500/50 rounded-2xl p-5 max-w-sm w-full shadow-2xl"
           >
             <h3 className="text-center text-lg font-semibold text-indigo-300 mb-1">
-              Peek: All {cardsPerPlayer} Cards
+              Peek: All 3 Cards
             </h3>
             <p className="text-xs text-slate-400 text-center mb-4">
-              Choose a player to peek at all {cardsPerPlayer} of their cards.
+              Choose a player to peek at all 3 of their cards.
             </p>
 
             <div className="space-y-2 mb-4">
@@ -56,7 +54,7 @@ export default function PeekAllOpponentPickerModal({
                     className="w-full py-3 px-4 bg-slate-900/60 hover:bg-indigo-900/30 border border-slate-600 hover:border-indigo-400 rounded-xl text-left transition-all cursor-pointer flex items-center justify-between"
                   >
                     <span className="text-slate-200 font-medium">{pd.displayName}</span>
-                    <span className="text-xs text-slate-500">{cardsPerPlayer} cards</span>
+                    <span className="text-xs text-slate-500">3 cards</span>
                   </button>
                 )
               })}

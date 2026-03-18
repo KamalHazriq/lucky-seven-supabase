@@ -52,7 +52,7 @@ export const REARRANGE_CONSTRAINT: SelectionConstraint = {
 export type ModalState =
   | { type: 'peekOne' }
   | { type: 'peekResult'; card: Card; slot: number }
-  | { type: 'peekAll'; cards: Record<number, Card> }
+  | { type: 'peekAll'; cards: Record<string, Card> }
   | { type: 'swap' }
   | { type: 'lock' }
   | { type: 'unlock' }
@@ -61,7 +61,7 @@ export type ModalState =
   | { type: 'peekOpponent' }
   | { type: 'peekOpponentResult'; card: Card; playerName: string; slot: number }
   | { type: 'peekAllOpponent' }
-  | { type: 'peekAllOpponentResult'; cards: Record<number, Card>; playerName: string; locks: boolean[] }
+  | { type: 'peekAllOpponentResult'; cards: Record<number, Card>; playerName: string; locks: [boolean, boolean, boolean] }
   | { type: 'none' }
 
 // ─── Hook params ─────────────────────────────────────────────
@@ -78,7 +78,7 @@ interface UseGameActionsParams {
 
   // Private state
   privateState: PrivatePlayerDoc | null
-  myLocks: boolean[]
+  myLocks: [boolean, boolean, boolean]
 
   // UI mode
   uiMode: 'modal' | 'actionbar'
@@ -604,7 +604,7 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
 
       if (uiMode === 'actionbar' && hasDrawnCard && isActionPhase && modal.type === 'none' && !drawnCardDismissed) {
         const num = parseInt(e.key)
-        if (num >= 1 && num <= myLocks.length) {
+        if (num >= 1 && num <= 3) {
           const slotIdx = num - 1
           if (!myLocks[slotIdx]) {
             e.preventDefault()

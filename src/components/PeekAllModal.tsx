@@ -1,4 +1,3 @@
-import { useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import CardView from './CardView'
 import type { Card } from '../lib/types'
@@ -7,9 +6,7 @@ interface PeekAllModalProps {
   open: boolean
   /** Map of slotIndex -> revealed card (locked slots are omitted) */
   revealedCards: Record<number, Card>
-  locks: boolean[]
-  autoCloseMs?: number | null
-  temporary?: boolean
+  locks: [boolean, boolean, boolean]
   onClose: () => void
 }
 
@@ -17,23 +14,8 @@ export default function PeekAllModal({
   open,
   revealedCards,
   locks,
-  autoCloseMs = null,
-  temporary = false,
   onClose,
 }: PeekAllModalProps) {
-  const slots = locks.map((_, i) => i)
-  const onCloseRef = useRef(onClose)
-
-  useEffect(() => {
-    onCloseRef.current = onClose
-  }, [onClose])
-
-  useEffect(() => {
-    if (!open || !autoCloseMs) return
-    const timer = setTimeout(() => onCloseRef.current(), autoCloseMs)
-    return () => clearTimeout(timer)
-  }, [open, autoCloseMs])
-
   return (
     <AnimatePresence>
       {open && (
@@ -54,13 +36,11 @@ export default function PeekAllModal({
               Peek: All Your Cards!
             </h3>
             <p className="text-sm text-slate-400 mb-5">
-              {temporary
-                ? 'Only you can see these. They will hide again shortly.'
-                : 'Only you can see these. Remember them!'}
+              Only you can see these. Remember them!
             </p>
 
-            <div className="flex gap-3 justify-center mb-6 flex-wrap">
-              {slots.map((i) => {
+            <div className="flex gap-3 justify-center mb-6">
+              {[0, 1, 2].map((i) => {
                 const card = revealedCards[i]
                 const isLocked = locks[i]
 

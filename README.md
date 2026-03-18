@@ -75,16 +75,7 @@ supabase db push
 
 Or manually run each migration in order from `00001_create_tables.sql` through `00017_client_error_logs.sql` in the Supabase SQL Editor.
 
-### 3. Seed Dev Config (Optional)
-
-If you want dev mode access, insert a row into `dev_config`:
-
-```sql
-INSERT INTO dev_config (id, code, owner_code)
-VALUES (1, 'your-shared-code', 'your-owner-code');
-```
-
-### 4. Configure Environment Variables
+### 3. Configure Environment Variables
 
 ```bash
 cp .env.example .env
@@ -97,7 +88,7 @@ VITE_SUPABASE_URL=https://your-project-ref.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-### 5. Run Locally
+### 4. Run Locally
 
 ```bash
 npm install
@@ -106,7 +97,7 @@ npm run dev
 
 Open [http://localhost:5173/](http://localhost:5173/).
 
-### 6. Deploy to GitHub Pages / Custom Domain
+### 5. Deploy to GitHub Pages / Custom Domain
 
 Deployment is automated through GitHub Actions. Every push to `main` builds and deploys the site.
 

@@ -248,7 +248,7 @@ export async function usePeekOne(gameId: string, slotIndex: number, noMemory = f
   const { data, error } = await supabase.rpc('use_peek_one', {
     p_game_id: gameId,
     p_slot_index: slotIndex,
-    ...(noMemory ? { p_no_memory: true } : {}),
+    p_no_memory: noMemory,
   })
 
   if (error) throw new Error(error.message)
@@ -261,7 +261,7 @@ export async function usePeekAll(gameId: string, noMemory = false): Promise<Reco
 
   const { data, error } = await supabase.rpc('use_peek_all', {
     p_game_id: gameId,
-    ...(noMemory ? { p_no_memory: true } : {}),
+    p_no_memory: noMemory,
   })
 
   if (error) throw new Error(error.message)
@@ -281,7 +281,7 @@ export async function usePeekOpponent(
     p_game_id: gameId,
     p_target_player: targetPlayerId,
     p_slot_index: slotIndex,
-    ...(noMemory ? { p_no_memory: true } : {}),
+    p_no_memory: noMemory,
   })
 
   if (error) throw new Error(error.message)
@@ -299,7 +299,7 @@ export async function usePeekAllOpponent(
   const { data, error } = await supabase.rpc('use_peek_all_opponent', {
     p_game_id: gameId,
     p_target_player: targetPlayerId,
-    ...(noMemory ? { p_no_memory: true } : {}),
+    p_no_memory: noMemory,
   })
 
   if (error) throw new Error(error.message)

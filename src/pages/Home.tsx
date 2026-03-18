@@ -467,16 +467,19 @@ export default function Home() {
                                 {([3, 4] as const).map((n) => (
                                   <motion.button
                                     key={n}
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    onClick={() => setCardsPerPlayer(n)}
-                                    className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                                      cardsPerPlayer === n
-                                        ? 'bg-emerald-600 text-white'
-                                        : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                                    whileHover={n === 4 ? {} : { scale: 1.05 }}
+                                    whileTap={n === 4 ? {} : { scale: 0.95 }}
+                                    onClick={() => n !== 4 && setCardsPerPlayer(n)}
+                                    disabled={n === 4}
+                                    className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                                      n === 4
+                                        ? 'bg-secondary/40 text-muted-foreground cursor-not-allowed opacity-50'
+                                        : cardsPerPlayer === n
+                                          ? 'bg-emerald-600 text-white cursor-pointer'
+                                          : 'bg-secondary text-secondary-foreground hover:bg-secondary/80 cursor-pointer'
                                     }`}
                                   >
-                                    {n} cards
+                                    {n} cards{n === 4 ? ' (soon)' : ''}
                                   </motion.button>
                                 ))}
                               </div>

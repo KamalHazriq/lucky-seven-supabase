@@ -725,7 +725,7 @@ export default function Game() {
                 <div
                   className="absolute left-1/2 z-10"
                   ref={localPanelRef}
-                  style={{ bottom: 'max(8px, env(safe-area-inset-bottom, 8px))', transform: 'translateX(-50%)', maxWidth: cardsPerPlayer >= 4 ? '420px' : '340px', width: '82%' }}
+                  style={{ bottom: 'max(8px, env(safe-area-inset-bottom, 8px))', transform: 'translateX(-50%)', maxWidth: cardsPerPlayer >= 4 ? '420px' : '340px', width: cardsPerPlayer >= 4 ? '96%' : '82%' }}
                 >
                   <PlayerPanel
                     playerId={user.uid}

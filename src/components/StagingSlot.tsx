@@ -48,8 +48,8 @@ const StagingSlot = memo(forwardRef<HTMLDivElement, StagingSlotProps>(
 
     return (
       <div ref={ref} className={`text-center relative ${active && !perfMode ? 'staging-active' : ''}`} style={{ minWidth: '64px', borderRadius: '12px' }}>
-        <p className={`text-[10px] mb-1 font-medium ${active ? 'text-primary' : 'text-muted-foreground'}`}>
-          {active ? 'In play' : '\u00A0'}
+        <p className={`text-[10px] mb-1 font-medium transition-colors ${active ? 'text-primary' : 'text-muted-foreground/40'}`}>
+          In play
         </p>
         <AnimatePresence mode="wait">
           {active ? (
@@ -87,9 +87,9 @@ const StagingSlot = memo(forwardRef<HTMLDivElement, StagingSlotProps>(
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={SPRING_EXIT}
-              className="w-20 h-28 rounded-xl border-2 border-dashed border-border-subtle flex items-center justify-center"
+              className="w-20 h-28 rounded-xl border-2 border-dashed border-slate-600/50 flex items-center justify-center bg-slate-800/20"
             >
-              <span className="text-muted-foreground/30 text-[10px]" />
+              <span className="text-slate-500/60 text-[9px] font-medium select-none">empty</span>
             </motion.div>
           )}
         </AnimatePresence>

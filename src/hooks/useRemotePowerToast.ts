@@ -54,11 +54,18 @@ export function useRemotePowerToast(
         break
       }
     }
-    if (!actorId || actorId === localUserId) return
+    if (!actorId) return
+
+    const isLocalActor = actorId === localUserId
+    const actorName = players[actorId]?.displayName ?? ''
 
     // Clean up the message for display: strip "used (card) " prefix noise
-    // Show: "Sara used SWAP on Kamal's #1 ↔ Imad's #2"
-    const cleaned = msg
+    // Replace actor name with "You" for own actions
+    let cleaned = msg
+    if (isLocalActor && actorName) {
+      cleaned = cleaned.replace(new RegExp(`^${actorName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`), 'You')
+    }
+    cleaned = cleaned
       .replace(/\([^)]*[♠♥♦♣][^)]*\)/g, '') // remove card references like (10♠)
       .replace(/\(Joker\)/gi, '')
       .replace(/as swap:/i, 'used SWAP:')
@@ -69,6 +76,7 @@ export function useRemotePowerToast(
       .replace(/as rearrange:/i, 'used CHAOS:')
       .replace(/as peek_opponent:/i, 'used PEEK OPPONENT:')
       .replace(/\s*used\s+used/i, ' used') // prevent double "used used"
+      .replace(/<->/g, '↔')
       .replace(/\s{2,}/g, ' ')
       .trim()
 
@@ -76,9 +84,9 @@ export function useRemotePowerToast(
       icon: match.icon,
       duration: 3000,
       style: {
-        background: 'rgba(30, 41, 59, 0.95)',
+        background: isLocalActor ? 'rgba(20, 83, 45, 0.95)' : 'rgba(30, 41, 59, 0.95)',
         color: '#e2e8f0',
-        border: '1px solid rgba(100, 116, 139, 0.3)',
+        border: isLocalActor ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid rgba(100, 116, 139, 0.3)',
         fontSize: '12px',
         fontWeight: '500',
         maxWidth: '320px',

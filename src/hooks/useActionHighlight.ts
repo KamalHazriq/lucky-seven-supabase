@@ -26,6 +26,7 @@ export function useActionHighlight(
   actionVersion: number,
   log: LogEntry[],
   players: Record<string, PlayerDoc>,
+  cardsPerPlayer = 3,
 ): { highlights: HighlightMap; slotOverlays: SlotOverlayMap; swapLabels: SwapLabelMap } {
   const [highlights, setHighlights] = useState<HighlightMap>({})
   const [slotOverlays, setSlotOverlays] = useState<SlotOverlayMap>({})
@@ -93,8 +94,8 @@ export function useActionHighlight(
       newSlotOverlays[actorId] = { [slot]: color.solid }
     }
 
-    // "as swap: PlayerA's #X ↔ PlayerB's #Y"
-    const queenSwapMatch = msg.match(/as swap:\s*(.+)'s #(\d)\s*↔\s*(.+)'s #(\d)/)
+    // "as swap: PlayerA's #X <-> PlayerB's #Y"  (DB uses <->, not ↔)
+    const queenSwapMatch = msg.match(/as swap:\s*(.+)'s #(\d)\s*(?:<->|↔)\s*(.+)'s #(\d)/)
     if (queenSwapMatch) {
       const nameA = queenSwapMatch[1]
       const slotA = parseInt(queenSwapMatch[2], 10) - 1
@@ -163,8 +164,9 @@ export function useActionHighlight(
       const targetName = rearrangeMatch[1]
       for (const [pid, pd] of Object.entries(playersRef.current)) {
         if (pd.displayName === targetName) {
-          // Highlight all 3 slots
-          newSlotOverlays[pid] = { 0: color.solid, 1: color.solid, 2: color.solid }
+          const overlays: Record<number, string> = {}
+          for (let s = 0; s < cardsPerPlayer; s++) overlays[s] = color.solid
+          newSlotOverlays[pid] = overlays
         }
       }
     }

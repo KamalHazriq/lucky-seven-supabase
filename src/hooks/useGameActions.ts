@@ -110,6 +110,9 @@ interface UseGameActionsParams {
   triggerFly: (from: DOMRect, to: DOMRect, faceUp: boolean, card?: Card | null, ownerColor?: string) => void
   flushQueue: () => void
 
+  // Player panel refs for swap animation
+  otherPanelRefs?: React.MutableRefObject<Record<string, HTMLDivElement | null>>
+
   // Selection mode
   selection: SelectionModeState
   isSelecting: boolean
@@ -168,11 +171,28 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
     startPileDraw, onStagingArrival, onSlotArrival, onDiscardArrival,
     onPlayerArrival, reconstructStaging, resetChoreo,
     triggerFly, flushQueue,
+    otherPanelRefs,
     selection, isSelecting, startSelection, selectTarget, confirmSelection,
     setStampOverlays, discardTop, peekAllowsOpponent, noMemoryMode, cardsPerPlayer,
   } = params
 
   const [busy, setBusy] = useState(false)
+
+  // Helper: get the bounding rect of a specific card slot in a player's panel
+  const getSlotRect = useCallback((playerId: string, slotIndex: number): DOMRect | null => {
+    const panel = otherPanelRefs?.current[playerId] ?? localPanelRef.current
+    return panel?.querySelector(`[data-slot="${slotIndex}"]`)?.getBoundingClientRect() ?? null
+  }, [otherPanelRefs, localPanelRef])
+
+  // Helper: trigger a flying card animation between two player slots
+  const triggerSwapFly = useCallback((
+    pidA: string, slotA: number, pidB: string, slotB: number,
+  ) => {
+    if (reduced) return
+    const rectA = getSlotRect(pidA, slotA)
+    const rectB = getSlotRect(pidB, slotB)
+    if (rectA && rectB) triggerFly(rectA, rectB, false, null)
+  }, [reduced, getSlotRect, triggerFly])
   const busyRef = useRef(false)
   const [modal, setModal] = useState<ModalState>({ type: 'none' })
   const [peekReveal, setPeekReveal] = useState<{ slot: number; card: Card } | null>(null)
@@ -485,6 +505,7 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
             { playerId: second.playerId, slotIndex: second.slotIndex },
           )
           playSfx('swap'); vibrate()
+          triggerSwapFly(first.playerId, first.slotIndex, second.playerId, second.slotIndex)
         })
         break
       case 'anyUnlockedSlot':
@@ -548,7 +569,11 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
     targetB: { playerId: string; slotIndex: number },
   ) => {
     setModal({ type: 'none' })
-    withBusy(async () => { await swapCards(gameId!, targetA, targetB); playSfx('swap'); vibrate() })
+    withBusy(async () => {
+      await swapCards(gameId!, targetA, targetB)
+      playSfx('swap'); vibrate()
+      triggerSwapFly(targetA.playerId, targetA.slotIndex, targetB.playerId, targetB.slotIndex)
+    })
   }
 
   const handleLockSelect = (targetPlayerId: string, slotIndex: number) => {

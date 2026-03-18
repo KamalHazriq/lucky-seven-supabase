@@ -198,6 +198,7 @@ export default function Game() {
     game?.actionVersion ?? 0,
     game?.log ?? [],
     players,
+    cardsPerPlayer,
   )
 
   // Remote SFX — plays sounds for other players' actions; local actions use playSfx() directly
@@ -246,6 +247,7 @@ export default function Game() {
     startPileDraw, onStagingArrival, onSlotArrival, onDiscardArrival,
     onPlayerArrival, reconstructStaging, resetChoreo,
     triggerFly, flushQueue,
+    otherPanelRefs,
     selection, isSelecting, startSelection, selectTarget,
     confirmSelection, setStampOverlays,
     discardTop: game?.discardTop ?? null,

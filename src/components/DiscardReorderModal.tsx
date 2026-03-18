@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import CardView from './CardView'
 import type { Card } from '../lib/types'
@@ -46,6 +46,14 @@ export default function DrawPileReorderModal({
     setCards([...drawPileCards])
     setDirty(false)
   }, [drawPileCards])
+
+  // Live sync: keep cards in step with the draw pile when user has no pending changes
+  useEffect(() => {
+    if (!open || dirty) return
+    setCards([...drawPileCards])
+  // drawPileCards identity changes on every pile update — intentional dependency
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drawPileCards, open])
 
   const moveToTop = (index: number) => {
     if (index === 0) return

@@ -1,4 +1,4 @@
-# Lucky Seven(TM) - Online Multiplayer Card Game
+# Lucky Seven<sup>TM</sup> - Online Multiplayer Card Game
 
 A real-time multiplayer card game for 2-8 players, built by Kamal Hazriq. Hosted on GitHub Pages at [luckyseven.site](https://luckyseven.site) with Supabase as the backend. Lowest score wins, and Sevens are worth zero.
 

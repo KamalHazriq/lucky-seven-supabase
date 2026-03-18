@@ -1,14 +1,10 @@
-import { useState, useRef, useCallback, useEffect, useMemo, memo } from 'react'
-import { usePerformanceMode } from '../hooks/usePerformanceMode'
-import { motion, type Transition } from 'framer-motion'
-
-/** Shared spring configs for premium buttery-smooth motion */
-const SPRING_HOVER: Transition = { type: 'spring', stiffness: 350, damping: 22, mass: 0.6 }
-const SPRING_FLIP: Transition  = { type: 'spring', stiffness: 160, damping: 20, mass: 0.9 }
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import type { Card, LockInfo } from '../lib/types'
 import { suitColor } from '../lib/deck'
+import { usePerformanceMode } from '../hooks/usePerformanceMode'
+import { CARD_FLIP_SPRING, CARD_HOVER_SPRING, CARD_LAYOUT_SPRING } from '../lib/motionTokens'
 
-/** Convert a hex color or rgba() string to rgba with custom alpha */
 function hexToRgba(color: string, alpha: number): string {
   const rgbaMatch = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/)
   if (rgbaMatch) {
@@ -21,7 +17,6 @@ function hexToRgba(color: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`
 }
 
-/** Suit symbol lookup */
 const SUIT_SYMBOL: Record<string, string> = {
   hearts: '\u2665',
   diamonds: '\u2666',
@@ -40,7 +35,6 @@ interface CardViewProps {
   highlight?: boolean
   size?: 'sm' | 'md' | 'lg'
   label?: string
-  /** Player owner color (tinted) — applied to face-down card border & center circle */
   ownerColor?: string
 }
 
@@ -63,11 +57,13 @@ function CardView({
   label,
   ownerColor,
 }: CardViewProps) {
-  const showFace = faceUp && card
+  const showFace = !!(faceUp && card)
   const isFaceCard = !!card && !card.isJoker && ['J', 'Q', 'K'].includes(card.rank)
   const perfMode = usePerformanceMode()
   const [showTooltip, setShowTooltip] = useState(false)
   const lockerName = lockInfo?.lockerName
+  const longPressRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const tooltipRef = useRef<HTMLDivElement>(null)
 
   const ownerColorStyle = useMemo(() => {
     if (!ownerColor) return null
@@ -76,8 +72,6 @@ function CardView({
       boxShadow: `inset 0 1px 0 ${hexToRgba('#ffffff', 0.06)}, 0 4px 12px ${hexToRgba(ownerColor, 0.25)}`,
     }
   }, [ownerColor])
-  const longPressRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const tooltipRef = useRef<HTMLDivElement>(null)
 
   const handleTouchStart = useCallback(() => {
     if (!lockerName) return
@@ -99,38 +93,41 @@ function CardView({
     return () => document.removeEventListener('touchstart', handler)
   }, [showTooltip])
 
-  // ─── Font sizes per card size ───
   const suitFontSize = size === 'lg'
-    ? (isFaceCard ? '1.45rem' : '1.7rem')
+    ? (isFaceCard ? '1.56rem' : '1.86rem')
     : size === 'md'
-      ? (isFaceCard ? '1.15rem' : '1.35rem')
-      : (isFaceCard ? '0.9rem' : '1rem')
+      ? (isFaceCard ? '1.26rem' : '1.5rem')
+      : (isFaceCard ? '0.98rem' : '1.12rem')
   const rankFontSize = size === 'lg'
-    ? (isFaceCard ? '0.82rem' : '0.78rem')
+    ? '0.92rem'
     : size === 'md'
-      ? (isFaceCard ? '0.72rem' : '0.66rem')
-      : (isFaceCard ? '0.58rem' : '0.5rem')
+      ? '0.78rem'
+      : '0.62rem'
   const centerRankSize = size === 'lg'
-    ? (isFaceCard ? '0.96rem' : '1.08rem')
+    ? (isFaceCard ? '1.08rem' : '1.3rem')
     : size === 'md'
-      ? (isFaceCard ? '0.82rem' : '0.78rem')
-      : (isFaceCard ? '0.62rem' : '0.58rem')
+      ? (isFaceCard ? '0.92rem' : '1.02rem')
+      : (isFaceCard ? '0.72rem' : '0.76rem')
   const cornerSuitSize = size === 'lg' ? '0.62rem' : size === 'md' ? '0.52rem' : '0.4rem'
   const cornerTop = size === 'lg' ? '3px' : '2px'
   const cornerLeft = size === 'lg' ? '4px' : '3px'
+  const interactive = !!onClick && !disabled
+  const hoverMotion = perfMode ? { scale: 1.02, y: -2 } : { scale: 1.045, y: -4, rotate: -0.8 }
+  const tapMotion = perfMode ? { scale: 0.985, y: 0 } : { scale: 0.97, y: -1 }
 
   return (
     <motion.div
-      whileHover={onClick && !disabled ? { scale: 1.07, y: -5, rotate: -1 } : undefined}
-      whileTap={onClick && !disabled ? { scale: 0.95, y: 0 } : undefined}
-      transition={onClick && !disabled ? SPRING_HOVER : undefined}
+      layout="position"
+      whileHover={interactive ? hoverMotion : undefined}
+      whileTap={interactive ? tapMotion : undefined}
+      transition={interactive ? CARD_HOVER_SPRING : CARD_LAYOUT_SPRING}
       onClick={!disabled ? onClick : undefined}
       className={`
         ${sizes[size]}
-        relative rounded-xl select-none
+        relative rounded-xl select-none overflow-visible
         flex flex-col items-center justify-center
-        transition-shadow duration-300
-        ${onClick && !disabled ? 'cursor-pointer hover:shadow-xl' : ''}
+        transition-[box-shadow,filter] duration-300
+        ${interactive ? 'cursor-pointer hover:shadow-xl' : ''}
         ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
         ${highlight ? 'ring-2 ring-gold ring-offset-2 ring-offset-transparent shadow-gold/30 shadow-xl' : ''}
         ${showFace
@@ -141,149 +138,162 @@ function CardView({
         }
       `}
       style={{
-        perspective: '600px',
+        perspective: '900px',
+        transformStyle: 'preserve-3d',
+        filter: highlight ? 'drop-shadow(0 10px 22px rgba(245, 158, 11, 0.22))' : undefined,
         ...(!showFace && ownerColorStyle ? ownerColorStyle : {}),
       }}
     >
-      {showFace ? (
-        <motion.div
-          initial={{ rotateY: 90, scale: 0.92 }}
-          animate={{ rotateY: 0, scale: 1 }}
-          transition={SPRING_FLIP}
-          className="flex flex-col items-center justify-center w-full h-full"
-          style={{ backfaceVisibility: 'hidden' }}
-        >
-          {card.isJoker ? (
-            /* ─── Joker card ─── */
-            <>
-              {/* Top-left corner */}
-              <span
-                className="absolute font-bold leading-none"
-                style={{
-                  fontSize: rankFontSize,
-                  top: cornerTop,
-                  left: cornerLeft,
-                  color: '#a855f7',
-                }}
-              >
-                <span style={{ fontSize: cornerSuitSize }}>🃏</span>
-              </span>
-              {/* Center */}
-              <span style={{ color: '#a855f7', fontSize: suitFontSize }} className="leading-none">
-                🃏
-              </span>
-              <span
-                className="font-bold leading-none tracking-tight"
-                style={{ color: '#a855f7', fontSize: size === 'lg' ? '0.55rem' : size === 'md' ? '0.5rem' : '0.4rem', marginTop: '2px' }}
-              >
-                JOKER
-              </span>
-            </>
-          ) : (
-            /* ─── Normal card — tabletop style ─── */
-            <>
-              {/* Top-left corner: rank + suit */}
-              <div
-                className="absolute flex flex-col items-center leading-none"
-                style={{
-                  top: cornerTop,
-                  left: cornerLeft,
-                  color: suitColor(card),
-                }}
-              >
-                <span className="font-bold" style={{ fontSize: rankFontSize, lineHeight: 1 }}>
-                  {card.rank}
-                </span>
-                <span style={{ fontSize: cornerSuitSize, lineHeight: 1, marginTop: '0px' }}>
-                  {SUIT_SYMBOL[card.suit]}
-                </span>
-              </div>
-
-              {/* Bottom-right corner: mirrored rank + suit */}
-              <div
-                className="absolute flex flex-col items-center leading-none"
-                style={{
-                  bottom: cornerTop,
-                  right: cornerLeft,
-                  color: suitColor(card),
-                  transform: 'rotate(180deg)',
-                }}
-              >
-                <span className="font-bold" style={{ fontSize: rankFontSize, lineHeight: 1 }}>
-                  {card.rank}
-                </span>
-                <span style={{ fontSize: cornerSuitSize, lineHeight: 1, marginTop: '0px' }}>
-                  {SUIT_SYMBOL[card.suit]}
-                </span>
-              </div>
-
-              <div className="flex flex-col items-center justify-center" style={{ gap: isFaceCard ? '2px' : '1px' }}>
-                {/* Center: large suit icon */}
+      <AnimatePresence mode="wait" initial={false}>
+        {showFace && card ? (
+          <motion.div
+            key={`face-${card.id}`}
+            initial={{ rotateY: 84, scale: 0.96, opacity: 0.72 }}
+            animate={{ rotateY: 0, scale: 1, opacity: 1 }}
+            exit={{ rotateY: -86, scale: 0.96, opacity: 0.58 }}
+            transition={CARD_FLIP_SPRING}
+            className="absolute inset-0 flex flex-col items-center justify-center w-full h-full"
+            style={{
+              backfaceVisibility: 'hidden',
+              transformStyle: 'preserve-3d',
+            }}
+          >
+            {card.isJoker ? (
+              <>
                 <span
-                  className="leading-none"
+                  className="absolute font-bold leading-none"
                   style={{
-                    color: suitColor(card),
-                    fontSize: suitFontSize,
+                    fontSize: rankFontSize,
+                    top: cornerTop,
+                    left: cornerLeft,
+                    color: '#a855f7',
                   }}
                 >
-                  {SUIT_SYMBOL[card.suit]}
+                  <span style={{ fontSize: cornerSuitSize }}>🃏</span>
                 </span>
-
-                {/* Rank below suit */}
+                <span style={{ color: '#a855f7', fontSize: suitFontSize }} className="leading-none drop-shadow-[0_2px_6px_rgba(168,85,247,0.22)]">
+                  🃏
+                </span>
                 <span
-                  className="font-black leading-none tracking-tight"
+                  className="font-bold leading-none tracking-tight"
+                  style={{ color: '#a855f7', fontSize: size === 'lg' ? '0.58rem' : size === 'md' ? '0.52rem' : '0.42rem', marginTop: '2px', letterSpacing: '0.12em' }}
+                >
+                  JOKER
+                </span>
+              </>
+            ) : (
+              <>
+                <div
+                  className="absolute flex flex-col items-center leading-none"
                   style={{
+                    top: cornerTop,
+                    left: cornerLeft,
                     color: suitColor(card),
-                    fontSize: centerRankSize,
-                    padding: isFaceCard ? '1px 5px' : undefined,
-                    borderRadius: isFaceCard ? '999px' : undefined,
-                    background: isFaceCard ? 'rgba(15, 23, 42, 0.08)' : undefined,
-                    letterSpacing: isFaceCard ? '0.08em' : '0.01em',
-                    minWidth: isFaceCard ? '1.6em' : undefined,
-                    textAlign: 'center',
                   }}
                 >
-                  {card.rank}
-                </span>
-              </div>
-            </>
-          )}
+                  <span className="font-black tracking-tight" style={{ fontSize: rankFontSize, lineHeight: 1 }}>
+                    {card.rank}
+                  </span>
+                  <span style={{ fontSize: cornerSuitSize, lineHeight: 1, marginTop: '0px' }}>
+                    {SUIT_SYMBOL[card.suit]}
+                  </span>
+                </div>
 
-          {/* Seven = 0 badge */}
-          {card.rank === '7' && !card.isJoker && (
-            <span className="absolute -top-1 -right-1 bg-amber-400 text-amber-900 text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm">
-              0
-            </span>
-          )}
-        </motion.div>
-      ) : (
-        /* ─── Face-down card back ─── */
-        <div
-          className={perfMode ? 'absolute inset-0 rounded-xl' : 'card-shimmer absolute inset-0 rounded-xl'}
-          style={ownerColor && !perfMode ? {
-            '--shimmer-color': ownerColor,
-          } as React.CSSProperties : undefined}
-        >
-          <div className="flex items-center justify-center h-full">
-            <div
-              className="w-7 h-7 rounded-full border flex items-center justify-center"
-              style={{
-                borderColor: ownerColor ? 'rgba(255,255,255,0.15)' : 'rgba(96,165,250,0.20)',
-                background: ownerColor ? 'rgba(255,255,255,0.04)' : 'rgba(96,165,250,0.06)',
-              }}
-            >
-              <span
-                className="font-bold text-base"
-                style={{ color: ownerColor ? 'rgba(255,255,255,0.4)' : 'rgba(96,165,250,0.40)' }}
+                <div
+                  className="absolute flex flex-col items-center leading-none"
+                  style={{
+                    bottom: cornerTop,
+                    right: cornerLeft,
+                    color: suitColor(card),
+                    transform: 'rotate(180deg)',
+                  }}
+                >
+                  <span className="font-black tracking-tight" style={{ fontSize: rankFontSize, lineHeight: 1 }}>
+                    {card.rank}
+                  </span>
+                  <span style={{ fontSize: cornerSuitSize, lineHeight: 1, marginTop: '0px' }}>
+                    {SUIT_SYMBOL[card.suit]}
+                  </span>
+                </div>
+
+                <div className="flex flex-col items-center justify-center" style={{ gap: isFaceCard ? '3px' : '2px' }}>
+                  <span
+                    className="leading-none"
+                    style={{
+                      color: suitColor(card),
+                      fontSize: suitFontSize,
+                      filter: isFaceCard ? 'drop-shadow(0 2px 6px rgba(15, 23, 42, 0.12))' : undefined,
+                    }}
+                  >
+                    {SUIT_SYMBOL[card.suit]}
+                  </span>
+
+                  <span
+                    className="font-black leading-none tracking-tight"
+                    style={{
+                      color: suitColor(card),
+                      fontSize: centerRankSize,
+                      padding: isFaceCard ? '2px 7px' : undefined,
+                      borderRadius: isFaceCard ? '999px' : undefined,
+                      background: isFaceCard ? 'linear-gradient(180deg, rgba(15,23,42,0.08), rgba(15,23,42,0.02))' : undefined,
+                      boxShadow: isFaceCard ? 'inset 0 1px 0 rgba(255,255,255,0.7)' : undefined,
+                      letterSpacing: isFaceCard ? '0.12em' : '0.02em',
+                      minWidth: isFaceCard ? '1.85em' : undefined,
+                      textAlign: 'center',
+                    }}
+                  >
+                    {card.rank}
+                  </span>
+                </div>
+              </>
+            )}
+
+            {card.rank === '7' && !card.isJoker && (
+              <motion.span
+                initial={{ scale: 0.7, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={CARD_LAYOUT_SPRING}
+                className="absolute -top-1 -right-1 bg-amber-400 text-amber-900 text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm"
               >
-                7
-              </span>
+                0
+              </motion.span>
+            )}
+          </motion.div>
+        ) : (
+          <motion.div
+            key={`back-${ownerColor ?? 'default'}`}
+            initial={{ rotateY: -84, scale: 0.965, opacity: 0.76 }}
+            animate={{ rotateY: 0, scale: 1, opacity: 1 }}
+            exit={{ rotateY: 88, scale: 0.965, opacity: 0.58 }}
+            transition={CARD_FLIP_SPRING}
+            className={perfMode ? 'absolute inset-0 rounded-xl' : 'card-shimmer absolute inset-0 rounded-xl'}
+            style={ownerColor && !perfMode ? {
+              '--shimmer-color': ownerColor,
+            } as React.CSSProperties : undefined}
+          >
+            <div className="flex items-center justify-center h-full">
+              <motion.div
+                animate={perfMode ? undefined : { scale: [1, 1.03, 1] }}
+                transition={perfMode ? undefined : { duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
+                className="w-7 h-7 rounded-full border flex items-center justify-center"
+                style={{
+                  borderColor: ownerColor ? 'rgba(255,255,255,0.15)' : 'rgba(96,165,250,0.20)',
+                  background: ownerColor ? 'rgba(255,255,255,0.04)' : 'rgba(96,165,250,0.06)',
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)',
+                }}
+              >
+                <span
+                  className="font-bold text-base"
+                  style={{ color: ownerColor ? 'rgba(255,255,255,0.4)' : 'rgba(96,165,250,0.40)' }}
+                >
+                  7
+                </span>
+              </motion.div>
             </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* King lock overlay — visible on locked cards */}
       {locked && (
         showFace ? (
           <div className="absolute top-0.5 right-0.5 z-10 pointer-events-none flex items-center justify-center w-5 h-5 bg-red-900/80 rounded-full shadow-md">
@@ -299,7 +309,6 @@ function CardView({
         )
       )}
 
-      {/* Lock tooltip trigger — hover + long-press */}
       {locked && lockerName && (
         <div
           ref={tooltipRef}
@@ -312,21 +321,30 @@ function CardView({
           aria-describedby={showTooltip ? 'lock-tooltip' : undefined}
         >
           {showTooltip && (
-            <div
+            <motion.div
               id="lock-tooltip"
               role="tooltip"
+              initial={{ opacity: 0, y: 4, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 2, scale: 0.96 }}
+              transition={CARD_LAYOUT_SPRING}
               className="absolute -top-9 left-1/2 -translate-x-1/2 bg-slate-900 border border-red-500/50 text-red-300 text-[10px] font-medium px-2 py-1 rounded-lg shadow-lg whitespace-nowrap z-30 pointer-events-none"
             >
               Locked by {lockerName}
-            </div>
+            </motion.div>
           )}
         </div>
       )}
 
       {known && !faceUp && (
-        <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-[9px] font-semibold px-1.5 py-0.5 rounded-full z-10">
+        <motion.span
+          initial={{ opacity: 0, y: 3 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={CARD_LAYOUT_SPRING}
+          className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-[9px] font-semibold px-1.5 py-0.5 rounded-full z-10"
+        >
           Known
-        </span>
+        </motion.span>
       )}
 
       {label && (

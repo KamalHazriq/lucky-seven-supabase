@@ -13,8 +13,6 @@
  * - Table layout disabled on mobile (<768px) — enforced by useLayout hook
  *
  * @param otherCount  Number of OTHER players (excluding local player)
- * @param _layoutMode  Reserved for future layout variants
- * @param _containerRect  Reserved for dynamic container-aware positioning
  */
 export interface SeatPosition {
   left: number  // percentage (0–100)
@@ -88,8 +86,6 @@ function validateSpacing(positions: SeatPosition[]): SeatPosition[] {
 
 export function getSeatPositions(
   otherCount: number,
-  _layoutMode?: 'table' | 'classic',
-  _containerRect?: { width: number; height: number },
 ): SeatPosition[] {
   if (otherCount === 0) return []
 

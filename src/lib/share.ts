@@ -20,7 +20,7 @@ export function getRoomLink(gameId: string): string {
 }
 
 /** Get a copyable invite message */
-export function getInviteMessage(joinCode: string, _gameId: string): string {
+export function getInviteMessage(joinCode: string): string {
   const link = getJoinLink(joinCode)
   return `Join my Lucky Seven room!\nCode: ${joinCode}\n${link}`
 }

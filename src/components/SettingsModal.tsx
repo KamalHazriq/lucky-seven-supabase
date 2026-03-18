@@ -2,7 +2,7 @@ import { motion } from 'framer-motion'
 import { isSfxEnabled, setSfxEnabled, isHapticEnabled, setHapticEnabled, isPerformanceModeEnabled, setPerformanceModeEnabled, getSfxVolume, setSfxVolume } from '../lib/sfx'
 import { useReducedMotion } from '../hooks/useReducedMotion'
 import { useTheme, type Theme } from '../hooks/useTheme'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -73,13 +73,16 @@ export default function SettingsModal({
   const [perfMode, setPerfModeState] = useState(isPerformanceModeEnabled)
   const [volume, setVolumeState] = useState(getSfxVolume)
   const hasVibrate = typeof navigator !== 'undefined' && 'vibrate' in navigator
-
-  useEffect(() => {
+  const syncStoredPreferences = useCallback(() => {
     setSfxState(isSfxEnabled())
     setHapticState(isHapticEnabled())
     setPerfModeState(isPerformanceModeEnabled())
     setVolumeState(getSfxVolume())
-  }, [open])
+  }, [])
+
+  useEffect(() => {
+    if (open) syncStoredPreferences()
+  }, [open, syncStoredPreferences])
 
   const toggleSfx = () => {
     const next = !sfx

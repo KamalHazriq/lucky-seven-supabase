@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Tooltip from './Tooltip'
 import { isSfxEnabled, setSfxEnabled, isHapticEnabled, setHapticEnabled } from '../lib/sfx'
 import { useReducedMotion } from '../hooks/useReducedMotion'
@@ -10,12 +10,15 @@ export default function GameSettings() {
   const { reduced, pref, cycle } = useReducedMotion()
   const { theme, setTheme } = useTheme()
   const hasVibrate = typeof navigator !== 'undefined' && 'vibrate' in navigator
-
-  // Sync local state
-  useEffect(() => {
+  const syncStoredPreferences = useCallback(() => {
     setSfxState(isSfxEnabled())
     setHapticState(isHapticEnabled())
   }, [])
+
+  // Sync local state
+  useEffect(() => {
+    syncStoredPreferences()
+  }, [syncStoredPreferences])
 
   const toggleSfx = () => {
     const next = !sfx

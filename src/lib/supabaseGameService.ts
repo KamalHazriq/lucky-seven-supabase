@@ -826,13 +826,14 @@ export async function getGlobalStats(): Promise<{
   // TABLE-returning RPCs return an array of rows
   const row = (Array.isArray(data) ? data[0] : data) as Record<string, unknown> | undefined
   if (!row) return { gamesPlayed: 0, totalVisits: 0, lastGameAt: null, gamesFinished: 0, totalPlayers: 0, uniquePlayers: 0 }
+  const uniquePlayers = Number(row.unique_players)
   return {
     gamesPlayed: (row.games_played as number) ?? 0,
     totalVisits: (row.total_visits as number) ?? 0,
     lastGameAt: (row.last_game_at as number) ?? null,
     gamesFinished: (row.games_finished as number) ?? 0,
     totalPlayers: (row.total_players as number) ?? 0,
-    uniquePlayers: Number(row.unique_players) ?? 0,
+    uniquePlayers: Number.isFinite(uniquePlayers) ? uniquePlayers : 0,
   }
 }
 

@@ -158,6 +158,16 @@ export default function Results() {
       .catch(() => navigate(`/lobby/${rematchId}`))
   }, [game?.rematchLobbyId, user, gameId, players, navigate])
 
+  useEffect(() => {
+    if (!allRevealed || celebratedRef.current) return
+    celebratedRef.current = true
+    const timer = setTimeout(() => {
+      playSfx('celebrate')
+      vibrate(150)
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [allRevealed])
+
   if (loading || !game) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -187,13 +197,6 @@ export default function Results() {
     }
   }
   const isSharedWin = winnerIds.size > 1
-
-  // Play celebration sound once when all reveals are in
-  if (allRevealed && !celebratedRef.current) {
-    celebratedRef.current = true
-    // Small delay so the UI renders first
-    setTimeout(() => { playSfx('celebrate'); vibrate(150) }, 400)
-  }
 
   // Winner names for display
   const winnerNames = allRevealed

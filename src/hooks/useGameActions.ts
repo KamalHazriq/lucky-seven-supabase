@@ -247,6 +247,8 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
       playSfx('take'); vibrate()
       if (!reduced && fromEl && stagingEl && discardCard) {
         startDiscardTake(discardCard, fromEl.getBoundingClientRect(), stagingEl.getBoundingClientRect())
+      } else {
+        reconstructStaging(discardCard, 'discard')
       }
     })
   }
@@ -514,7 +516,7 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
         })
         break
     }
-  }, [selection, confirmSelection, withBusy, gameId, reduced, setStampOverlays])
+  }, [selection, confirmSelection, withBusy, gameId, reduced, setStampOverlays, noMemoryMode])
 
   const handleSelectionClick = useCallback((target: SelectedTarget) => {
     // For swap (anyPlayerSlot two-pick), prevent selecting a second card from the same player

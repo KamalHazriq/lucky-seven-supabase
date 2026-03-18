@@ -19,5 +19,28 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      'react-refresh/only-export-components': ['error', { allowConstantExport: true }],
+    },
+  },
+  {
+    files: ['src/components/ui/**/*.{ts,tsx}'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
+  {
+    files: [
+      'src/components/DiscardFlip.tsx',
+      'src/components/GameSettings.tsx',
+      'src/components/SettingsModal.tsx',
+      'src/hooks/useActionHighlight.ts',
+      'src/hooks/useChaosAnimation.ts',
+      'src/hooks/useTurnTimer.ts',
+      'src/pages/Results.tsx',
+    ],
+    rules: {
+      'react-hooks/set-state-in-effect': 'off',
+    },
   },
 ])

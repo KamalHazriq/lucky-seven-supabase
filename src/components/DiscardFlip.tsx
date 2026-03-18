@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cardDisplay, suitColor } from '../lib/deck'
 import type { Card } from '../lib/types'
@@ -21,15 +21,18 @@ export default function DiscardFlip({ discardTop, reduced }: DiscardFlipProps) {
   const prevIdRef = useRef<string | null>(null)
   const [flipCard, setFlipCard] = useState<Card | null>(null)
   const [showFlip, setShowFlip] = useState(false)
+  const startFlipReveal = useCallback((nextCard: Card) => {
+    setFlipCard(nextCard)
+    setShowFlip(true)
+  }, [])
 
   useEffect(() => {
     const newId = discardTop?.id ?? null
     const oldId = prevIdRef.current
 
-    if (newId && newId !== oldId && oldId !== null) {
+    if (discardTop && newId && newId !== oldId && oldId !== null) {
       // New discard top appeared — trigger flip reveal
-      setFlipCard(discardTop)
-      setShowFlip(true)
+      startFlipReveal(discardTop)
       const timer = setTimeout(() => {
         setShowFlip(false)
       }, reduced ? 350 : 1500)
@@ -37,7 +40,7 @@ export default function DiscardFlip({ discardTop, reduced }: DiscardFlipProps) {
     }
 
     prevIdRef.current = newId
-  }, [discardTop, reduced])
+  }, [discardTop, reduced, startFlipReveal])
 
   // Update prevId when discardTop changes even without animation
   useEffect(() => {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
@@ -28,9 +28,10 @@ export default function Join() {
   const { user, loading: authLoading } = useAuth()
   const navigate = useNavigate()
 
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(() => (code ? null : 'No join code provided.'))
   const [gameId, setGameId] = useState<string | null>(null)
-  const [resolving, setResolving] = useState(true)
+  const [resolving, setResolving] = useState(() => !!code)
+  const [resolveAttempt, setResolveAttempt] = useState(0)
   const resolved = useRef(false)
 
   // Subscribe to lobby data once we have a gameId (to see taken names/colors)
@@ -42,15 +43,19 @@ export default function Join() {
   )
   const [selectedColor, setSelectedColor] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
+  const failResolve = useCallback((message: string) => {
+    setError(message)
+    setResolving(false)
+  }, [])
+  const completeResolve = useCallback((id: string) => {
+    setGameId(id)
+    setError(null)
+    setResolving(false)
+  }, [])
 
   // Step 1: Resolve join code → gameId
   useEffect(() => {
-    if (!code) {
-      setError('No join code provided.')
-      setResolving(false)
-      return
-    }
-    if (authLoading || !user) return
+    if (!code || authLoading || !user) return
     if (resolved.current) return
     resolved.current = true
 
@@ -58,18 +63,15 @@ export default function Join() {
       try {
         const id = await findGameByCode(code)
         if (!id) {
-          setError('Game not found. The code may have expired or be incorrect.')
-          setResolving(false)
+          failResolve('Game not found. The code may have expired or be incorrect.')
           return
         }
-        setGameId(id)
-        setResolving(false)
+        completeResolve(id)
       } catch (e) {
-        setError((e as Error).message)
-        setResolving(false)
+        failResolve((e as Error).message)
       }
     })()
-  }, [code, authLoading, user])
+  }, [code, authLoading, user, resolveAttempt, completeResolve, failResolve])
 
   // If user is already in the game, go straight to lobby
   useEffect(() => {
@@ -138,6 +140,7 @@ export default function Join() {
                 resolved.current = false
                 setError(null)
                 setResolving(true)
+                setResolveAttempt((attempt) => attempt + 1)
               }}
               className="rounded-xl bg-indigo-600 hover:bg-indigo-500"
             >

@@ -7,8 +7,7 @@
 import type {
   GameDoc, PlayerDoc, PrivatePlayerDoc, PlayerScore, ChatMessage, LockInfo,
 } from './types'
-
-const EMPTY_LOCK: LockInfo = { lockerId: null, lockerName: null }
+import { normalizeLockedBy, normalizeLocks } from './slotState'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Row = Record<string, any>
@@ -45,17 +44,18 @@ export function mapGameRow(r: Row): GameDoc {
 }
 
 export function mapPlayerRow(r: Row): PlayerDoc {
-  const lockedByRaw: (LockInfo | null)[] = r.locked_by ?? [null, null, null]
+  const rawLocks = Array.isArray(r.locks) ? (r.locks as boolean[]) : undefined
+  const lockedByRaw = Array.isArray(r.locked_by)
+    ? (r.locked_by as (LockInfo | null)[])
+    : undefined
+  const slotCount = Math.max(rawLocks?.length ?? 0, lockedByRaw?.length ?? 0, 3)
+
   return {
     displayName: r.display_name,
     seatIndex: r.seat_index,
     connected: r.connected,
-    locks: r.locks ?? [false, false, false],
-    lockedBy: [
-      lockedByRaw[0] ?? EMPTY_LOCK,
-      lockedByRaw[1] ?? EMPTY_LOCK,
-      lockedByRaw[2] ?? EMPTY_LOCK,
-    ],
+    locks: normalizeLocks(rawLocks, slotCount),
+    lockedBy: normalizeLockedBy(lockedByRaw, slotCount),
     colorKey: r.color_key ?? undefined,
     afkStrikes: r.afk_strikes ?? undefined,
   }
@@ -67,6 +67,7 @@ export function mapPrivateStateRow(r: Row): PrivatePlayerDoc {
     drawnCard: r.drawn_card ?? null,
     drawnCardSource: r.drawn_card_source ?? null,
     known: r.known ?? {},
+    opponent_known: r.opponent_known ?? {},
   }
 }
 

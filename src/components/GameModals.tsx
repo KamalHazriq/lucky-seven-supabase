@@ -15,6 +15,7 @@ import DevPanel from './DevPanel'
 import type { ModalState } from '../hooks/useGameActions'
 import type { Card, GameDoc, PlayerDoc, PowerEffectType, PowerRankKey, DrawnCardSource, DevPrivileges, PrivatePlayerDoc } from '../lib/types'
 import type { DEFAULT_GAME_SETTINGS } from '../lib/types'
+import { createDefaultLocks } from '../lib/slotState'
 
 interface GameModalsProps {
   // Modal state
@@ -274,7 +275,7 @@ export default function GameModals({
       <PeekAllOpponentModal
         open={modal.type === 'peekAllOpponentResult'}
         revealedCards={modal.type === 'peekAllOpponentResult' ? modal.cards : {}}
-        locks={modal.type === 'peekAllOpponentResult' ? modal.locks : [false, false, false]}
+        locks={modal.type === 'peekAllOpponentResult' ? modal.locks : createDefaultLocks(cardsPerPlayer)}
         playerName={modal.type === 'peekAllOpponentResult' ? modal.playerName : ''}
         onClose={() => setModal({ type: 'none' })}
       />

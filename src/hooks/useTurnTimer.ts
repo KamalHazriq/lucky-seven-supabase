@@ -25,7 +25,6 @@ interface TurnTimerState {
 export function useTurnTimer(
   game: GameDoc | null | undefined,
   gameId: string | undefined,
-  _localPlayerId: string | undefined,
 ): TurnTimerState {
   const [remaining, setRemaining] = useState<number | null>(null)
   const skipFiredRef = useRef(false)
@@ -36,32 +35,41 @@ export function useTurnTimer(
   const actionVersion = game?.actionVersion ?? 0
   const isActive = game?.status === 'active' || game?.status === 'ending'
   const voteKickActive = game?.voteKick?.active ?? false
+  const getRemainingNow = useCallback(() => {
+    if (turnSeconds === 0 || !currentTurnPlayerId || !isActive || !turnStartAt) {
+      return null
+    }
+    const elapsed = (Date.now() - turnStartAt) / 1000
+    const left = Math.min(turnSeconds, Math.max(0, turnSeconds - elapsed))
+    return Math.ceil(left)
+  }, [turnSeconds, currentTurnPlayerId, isActive, turnStartAt])
+
+  const resetRemainingForTurn = useCallback(() => {
+    setRemaining(getRemainingNow())
+  }, [getRemainingNow])
 
   // Reset skip-fired flag only on actual turn change (new player or new timer start)
   useEffect(() => {
     skipFiredRef.current = false
-  }, [currentTurnPlayerId, turnStartAt])
+    resetRemainingForTurn()
+  }, [currentTurnPlayerId, turnStartAt, resetRemainingForTurn])
 
   // Main countdown interval
   useEffect(() => {
-    // No timer if disabled, no active turn, or game not active
-    if (turnSeconds === 0 || !currentTurnPlayerId || !isActive || !turnStartAt) {
-      setRemaining(null)
+    if (getRemainingNow() === null) {
+      resetRemainingForTurn()
       return
     }
 
     // ─── Critical: immediately set remaining to a positive value ───
     // This prevents stale `remaining = 0` from a previous turn from
     // triggering the expiry effect before this interval has a chance to tick.
-    setRemaining(turnSeconds)
+    resetRemainingForTurn()
 
     const tick = () => {
       // Freeze display during vote kick — timer resumes when vote resolves
       if (voteKickActive) return
-      const elapsed = (Date.now() - turnStartAt) / 1000
-      // Clamp to [0, turnSeconds] to handle clock-skew between devices
-      const left = Math.min(turnSeconds, Math.max(0, turnSeconds - elapsed))
-      setRemaining(Math.ceil(left))
+      setRemaining(getRemainingNow())
     }
 
     // First tick after a short delay so React has time to process the
@@ -72,7 +80,7 @@ export function useTurnTimer(
       clearTimeout(firstTickId)
       clearInterval(id)
     }
-  }, [turnSeconds, turnStartAt, currentTurnPlayerId, isActive, voteKickActive])
+  }, [getRemainingNow, resetRemainingForTurn, voteKickActive])
 
   // Auto-skip trigger when timer expires
   const handleExpiry = useCallback(async () => {

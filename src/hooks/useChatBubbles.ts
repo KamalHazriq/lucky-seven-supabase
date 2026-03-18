@@ -57,8 +57,9 @@ export function useChatBubbles(
 
   // Cleanup all timers on unmount
   useEffect(() => {
+    const timers = timersRef.current
     return () => {
-      Object.values(timersRef.current).forEach(clearTimeout)
+      Object.values(timers).forEach(clearTimeout)
     }
   }, [])
 

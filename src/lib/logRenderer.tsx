@@ -76,16 +76,16 @@ const sourcePattern = new RegExp(
 )
 
 /** Power label chip — small rounded pill, consistent color */
-function PowerChip({ label }: { label: string }) {
+function renderPowerChip(label: string, key: string) {
   return (
-    <span className="inline-flex items-center px-1.5 py-px rounded-md text-[9px] font-bold uppercase tracking-wider bg-violet-900/50 text-violet-300 border border-violet-700/30 leading-none align-middle">
+    <span key={key} className="inline-flex items-center px-1.5 py-px rounded-md text-[9px] font-bold uppercase tracking-wider bg-violet-900/50 text-violet-300 border border-violet-700/30 leading-none align-middle">
       {label}
     </span>
   )
 }
 
 /** Card display chip — shows card with suit color matching actual card colors */
-function CardChip({ text }: { text: string }) {
+function renderCardChip(text: string, key: string) {
   const isRed = text.includes('\u2665') || text.includes('\u2666') // hearts or diamonds
   const isJoker = text.toLowerCase().includes('joker')
   // Red suits = bright red, black suits = white (high contrast), joker = purple
@@ -97,6 +97,7 @@ function CardChip({ text }: { text: string }) {
 
   return (
     <span
+      key={key}
       className="inline-flex items-center px-1 py-px rounded text-[9px] font-bold leading-none align-middle"
       style={style}
     >
@@ -106,18 +107,18 @@ function CardChip({ text }: { text: string }) {
 }
 
 /** Source label chip — DISCARD or PILE */
-function SourceChip({ label, color }: { label: string; color: string }) {
+function renderSourceChip(label: string, color: string, key: string) {
   return (
-    <span className={`inline-flex items-center text-[9px] font-bold uppercase tracking-wider leading-none align-middle ${color}`}>
+    <span key={key} className={`inline-flex items-center text-[9px] font-bold uppercase tracking-wider leading-none align-middle ${color}`}>
       {label}
     </span>
   )
 }
 
 /** Action verb chip — DISCARDED, DREW, SWAPPED, etc. */
-function ActionChip({ label, color }: { label: string; color: string }) {
+function renderActionChip(label: string, color: string, key: string) {
   return (
-    <span className={`inline-flex items-center text-[9px] font-bold uppercase tracking-wider leading-none align-middle ${color}`}>
+    <span key={key} className={`inline-flex items-center text-[9px] font-bold uppercase tracking-wider leading-none align-middle ${color}`}>
       {label}
     </span>
   )
@@ -140,7 +141,7 @@ function processInnerText(text: string, keyPrefix: string): ReactNode[] {
     const normalizedA = ap.toLowerCase()
     const actionInfo = ACTION_KEYWORDS[normalizedA]
     if (actionInfo) {
-      result.push(<ActionChip key={`${keyPrefix}-act-${a}`} label={actionInfo.label} color={actionInfo.color} />)
+      result.push(renderActionChip(actionInfo.label, actionInfo.color, `${keyPrefix}-act-${a}`))
       continue
     }
 
@@ -154,7 +155,7 @@ function processInnerText(text: string, keyPrefix: string): ReactNode[] {
       const normalizedP = pp.toLowerCase()
       const powerLabel = POWER_KEYWORDS[normalizedP]
       if (powerLabel) {
-        result.push(<PowerChip key={`${keyPrefix}-pow-${a}-${p}`} label={powerLabel} />)
+        result.push(renderPowerChip(powerLabel, `${keyPrefix}-pow-${a}-${p}`))
       } else {
         result.push(<span key={`${keyPrefix}-txt-${a}-${p}`}>{pp}</span>)
       }
@@ -184,7 +185,7 @@ function processTextFragment(text: string, keyPrefix: string): ReactNode[] {
     CARD_PATTERN.lastIndex = 0
     if (CARD_PATTERN.test(cardPart)) {
       CARD_PATTERN.lastIndex = 0
-      result.push(<CardChip key={`${keyPrefix}-card-${c}`} text={cardPart} />)
+      result.push(renderCardChip(cardPart, `${keyPrefix}-card-${c}`))
       continue
     }
 
@@ -198,7 +199,7 @@ function processTextFragment(text: string, keyPrefix: string): ReactNode[] {
       const normalized = sp.toLowerCase()
       const sourceInfo = SOURCE_KEYWORDS[normalized]
       if (sourceInfo) {
-        result.push(<SourceChip key={`${keyPrefix}-src-${c}-${s}`} label={sourceInfo.label} color={sourceInfo.color} />)
+        result.push(renderSourceChip(sourceInfo.label, sourceInfo.color, `${keyPrefix}-src-${c}-${s}`))
       } else {
         // Layers 2+3: Action verbs → power keywords
         result.push(...processInnerText(sp, `${keyPrefix}-inner-${c}-${s}`))

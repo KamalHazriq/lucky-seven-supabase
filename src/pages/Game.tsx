@@ -43,6 +43,7 @@ import { useGameActions } from '../hooks/useGameActions'
 import { copyToClipboard } from '../lib/share'
 import type { Card } from '../lib/types'
 import { DEFAULT_GAME_SETTINGS } from '../lib/types'
+import { normalizeLocks } from '../lib/slotState'
 
 export default function Game() {
   const { gameId } = useParams<{ gameId: string }>()
@@ -64,7 +65,7 @@ export default function Game() {
   const { layout, toggle: toggleLayout, isMobile } = useLayout()
   const { uiMode, toggleMode: toggleUiMode, isDesktop } = useUiMode()
   const { position: logPosition, toggle: toggleLogPosition, canSidebar: canLogSidebar } = useLogPosition()
-  const turnTimer = useTurnTimer(game, gameId, user?.uid)
+  const turnTimer = useTurnTimer(game, gameId)
   const { flyingCard, triggerFly, queueFly, flushQueue, clearFly } = useFlyingCard()
   const {
     choreo,
@@ -129,11 +130,7 @@ export default function Game() {
   // Dev mode is now activated via Patch Notes > Send Feedback modal
 
   // Chat (lazy subscribe — only on first open)
-  const chat = useChat(
-    gameId,
-    players[user?.uid ?? '']?.displayName ?? 'Player',
-    players[user?.uid ?? '']?.seatIndex ?? 0,
-  )
+  const chat = useChat(gameId)
 
   // Chat bubbles above player panels (UI-only, auto-clear after 4s)
   const chatBubbles = useChatBubbles(chat.messages, user?.uid ?? '')
@@ -184,9 +181,9 @@ export default function Game() {
   const isDrawPhase = isMyTurn && turnPhase === 'draw'
   const isActionPhase = isMyTurn && turnPhase === 'action'
   const myPlayer = user ? players[user.uid] : null
-  const myLocks = myPlayer?.locks ?? [false, false, false]
-  const powerAssignments = game?.settings?.powerAssignments ?? DEFAULT_GAME_SETTINGS.powerAssignments
   const cardsPerPlayer = game?.settings?.cardsPerPlayer ?? DEFAULT_GAME_SETTINGS.cardsPerPlayer
+  const myLocks = normalizeLocks(myPlayer?.locks, cardsPerPlayer)
+  const powerAssignments = game?.settings?.powerAssignments ?? DEFAULT_GAME_SETTINGS.powerAssignments
   const noMemoryMode = game?.settings?.noMemoryMode ?? DEFAULT_GAME_SETTINGS.noMemoryMode
   const spentPowerCardIds = game?.spentPowerCardIds ?? {}
   const myKnown = privateState?.known ?? {}
@@ -697,7 +694,7 @@ export default function Game() {
                         seatIndex={players[pid]?.seatIndex ?? 0}
                         colorKey={players[pid]?.colorKey}
                         connected={players[pid]?.connected ?? false}
-                        locks={players[pid]?.locks ?? [false, false, false]}
+                        locks={normalizeLocks(players[pid]?.locks, cardsPerPlayer)}
                         lockedBy={players[pid]?.lockedBy}
                         actionHighlight={actionHighlights[pid] ?? null}
                         chatBubble={chatBubbles[pid] ?? null}
@@ -814,7 +811,7 @@ export default function Game() {
                       seatIndex={players[pid]?.seatIndex ?? 0}
                       colorKey={players[pid]?.colorKey}
                       connected={players[pid]?.connected ?? false}
-                      locks={players[pid]?.locks ?? [false, false, false]}
+                      locks={normalizeLocks(players[pid]?.locks, cardsPerPlayer)}
                       lockedBy={players[pid]?.lockedBy}
                       actionHighlight={actionHighlights[pid] ?? null}
                       chatBubble={chatBubbles[pid] ?? null}

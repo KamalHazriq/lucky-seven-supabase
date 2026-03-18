@@ -69,11 +69,7 @@ export default function Lobby() {
   const myPlayer = user ? players[user.uid] : null
   // Prefer Supabase truth once it arrives; fall back to pending optimistic value
   const displayedColorKey = myPlayer?.colorKey ?? pendingColorKey
-  const chat = useChat(
-    gameId,
-    myPlayer?.displayName ?? 'Player',
-    myPlayer?.seatIndex ?? 0,
-  )
+  const chat = useChat(gameId)
 
   // Redirect to game when it starts
   useEffect(() => {
@@ -134,8 +130,8 @@ export default function Lobby() {
   }
 
   const handleCopyInvite = () => {
-    if (game?.joinCode && gameId) {
-      copyToClipboard(getInviteMessage(game.joinCode, gameId))
+    if (game?.joinCode) {
+      copyToClipboard(getInviteMessage(game.joinCode))
       toast.success('Invite message copied!')
     }
   }

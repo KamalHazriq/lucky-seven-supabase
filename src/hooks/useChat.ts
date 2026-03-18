@@ -31,8 +31,6 @@ function getStoredPref(): boolean | null {
  */
 export function useChat(
   gameId: string | undefined,
-  _displayName: string,
-  _seatIndex: number,
 ) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
@@ -47,7 +45,9 @@ export function useChat(
   const isOpenRef = useRef(isOpen)
   const lastSendRef = useRef(0)
 
-  isOpenRef.current = isOpen
+  useEffect(() => {
+    isOpenRef.current = isOpen
+  }, [isOpen])
 
   // ─── Supabase subscription (Postgres Changes) ─────────────────
   useEffect(() => {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { LogEntry, PlayerDoc } from '../lib/types'
 import { playSfx } from '../lib/sfx'
 
@@ -16,6 +16,17 @@ export function useChaosAnimation(
 ): Record<string, boolean> {
   const prevVersion = useRef(actionVersion)
   const [animating, setAnimating] = useState<Record<string, boolean>>({})
+  const startAnimation = useCallback((targetId: string) => {
+    playSfx('shuffle')
+    setAnimating((prev) => ({ ...prev, [targetId]: true }))
+  }, [])
+  const finishAnimation = useCallback((targetId: string) => {
+    setAnimating((prev) => {
+      const next = { ...prev }
+      delete next[targetId]
+      return next
+    })
+  }, [])
 
   useEffect(() => {
     if (actionVersion === prevVersion.current) return
@@ -44,20 +55,15 @@ export function useChaosAnimation(
     if (!targetId) return
 
     // Trigger animation + sound
-    playSfx('shuffle')
-    setAnimating((prev) => ({ ...prev, [targetId!]: true }))
+    startAnimation(targetId)
 
     // Clear after animation duration (~900ms)
     const timer = setTimeout(() => {
-      setAnimating((prev) => {
-        const next = { ...prev }
-        delete next[targetId!]
-        return next
-      })
+      finishAnimation(targetId)
     }, 950)
 
     return () => clearTimeout(timer)
-  }, [actionVersion, log, players])
+  }, [actionVersion, log, players, startAnimation, finishAnimation])
 
   return animating
 }

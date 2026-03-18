@@ -1,4 +1,4 @@
-export const CURRENT_VERSION = 'v1.0.0'
+export const CURRENT_VERSION = 'v1.0.1'
 
 export interface ReleaseNote {
   version: string
@@ -9,6 +9,35 @@ export interface ReleaseNote {
 
 // ─── Official releases (v1.x.x) ─────────────────────────────
 export const RELEASES: ReleaseNote[] = [
+  {
+    version: 'v1.0.1',
+    title: 'Sync & Stability Fixes',
+    date: '19 March 2026',
+    sections: [
+      {
+        heading: 'Multiplayer Stability',
+        items: [
+          'Fixed opponent peek knowledge getting lost after realtime state syncs',
+          'Fixed lock, selection, highlight, and remote animation handling for both 3-card and 4-card games',
+        ],
+      },
+      {
+        heading: 'Flow Fixes',
+        items: [
+          'Retry on the join screen now properly re-runs room resolution',
+          'Discard-take fallback flow now restores staging correctly when reduced-motion or no-animation paths are active',
+        ],
+      },
+      {
+        heading: 'Reliability',
+        items: [
+          'Results celebration and timer-related state handling were hardened to avoid unsafe React update patterns',
+          'Global stats now guard against invalid aggregate values instead of showing broken totals',
+          'No gameplay rules, scoring, card mechanics, or balance changes in this patch',
+        ],
+      },
+    ],
+  },
   {
     version: 'v1.0.0',
     title: 'Official Launch',

@@ -18,6 +18,8 @@ interface SlotPickerModalProps {
   onCancel: () => void
   /** Optional highlighted message shown when no valid targets exist */
   noTargetsMessage?: string
+  /** Number of cards per player (default 3) */
+  cardsPerPlayer?: number
 }
 
 const colorMap: Record<string, { bg: string; border: string; text: string; hover: string; btn: string; btnHover: string }> = {
@@ -40,13 +42,15 @@ export default function SlotPickerModal({
   onSelect,
   onCancel,
   noTargetsMessage,
+  cardsPerPlayer = 3,
 }: SlotPickerModalProps) {
   const colors = colorMap[accentColor] ?? colorMap['amber']
+  const slots = Array.from({ length: cardsPerPlayer }, (_, i) => i)
 
   const hasAnySelectable = playerOrder.some((pid) => {
     const pd = players[pid]
     if (!pd) return false
-    return [0, 1, 2].some((i) => slotFilter(pid, i, pd))
+    return slots.some((i) => slotFilter(pid, i, pd))
   })
 
   return (
@@ -100,7 +104,7 @@ export default function SlotPickerModal({
                       )}
                     </p>
                     <div className="flex gap-2 justify-center">
-                      {[0, 1, 2].map((i) => {
+                      {slots.map((i) => {
                         const selectable = slotFilter(pid, i, pd)
                         const knownCard = isLocal ? knownCards?.[String(i)] : undefined
 

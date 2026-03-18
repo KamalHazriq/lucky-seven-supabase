@@ -17,6 +17,8 @@ export default function PeekAllOpponentModal({
   playerName,
   onClose,
 }: PeekAllOpponentModalProps) {
+  const slotCount = locks.length || 3
+
   return (
     <AnimatePresence>
       {open && (
@@ -41,7 +43,7 @@ export default function PeekAllOpponentModal({
             </p>
 
             <div className="flex gap-3 justify-center mb-6">
-              {[0, 1, 2].map((i) => {
+              {Array.from({ length: slotCount }, (_, i) => i).map((i) => {
                 const card = revealedCards[i]
                 const isLocked = locks[i]
 

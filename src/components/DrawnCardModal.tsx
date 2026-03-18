@@ -136,14 +136,14 @@ export default function DrawnCardModal({
                 Your cards
               </p>
               <div className="flex gap-2 justify-center">
-                {[0, 1, 2].map((i) => {
+                {locks.map((locked, i) => {
                   const known = knownCards[String(i)]
                   return (
                     <div key={i} className="flex flex-col items-center gap-1">
                       <CardView
                         card={known ?? undefined}
                         faceUp={!!known}
-                        locked={locks[i]}
+                        locked={locked}
                         size="sm"
                       />
                       <span className="text-[10px] font-medium" style={{ color: 'var(--text-dim)' }}>#{i + 1}</span>
@@ -159,18 +159,18 @@ export default function DrawnCardModal({
               </p>
 
               <div className="flex gap-2 justify-center mb-3">
-                {[0, 1, 2].map((i) => (
+                {locks.map((locked, i) => (
                   <button
                     key={i}
                     onClick={() => onSwap(i)}
-                    disabled={locks[i]}
+                    disabled={locked}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-                      locks[i]
+                      locked
                         ? 'bg-slate-700 text-slate-500 cursor-not-allowed opacity-50'
                         : 'bg-indigo-600 hover:bg-indigo-500 text-white'
                     }`}
                   >
-                    {locks[i] ? '\u{1F512}' : ''} Swap #{i + 1}
+                    {locked ? '\u{1F512}' : ''} Swap #{i + 1}
                   </button>
                 ))}
               </div>

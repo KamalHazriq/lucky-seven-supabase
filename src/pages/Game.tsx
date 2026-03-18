@@ -725,7 +725,7 @@ export default function Game() {
                 <div
                   className="absolute left-1/2 z-10"
                   ref={localPanelRef}
-                  style={{ bottom: 'max(8px, env(safe-area-inset-bottom, 8px))', transform: 'translateX(-50%)', maxWidth: '340px', width: '82%' }}
+                  style={{ bottom: 'max(8px, env(safe-area-inset-bottom, 8px))', transform: 'translateX(-50%)', maxWidth: cardsPerPlayer >= 4 ? '420px' : '340px', width: '82%' }}
                 >
                   <PlayerPanel
                     playerId={user.uid}
@@ -763,7 +763,7 @@ export default function Game() {
               </div>
               {/* Action Bar for table layout — below table zone, clear gap */}
               {!isSpectator && uiMode === 'actionbar' && (
-                <div className="mx-auto mb-4 mt-2" style={{ maxWidth: '380px', width: '90%' }}>
+                <div className="mx-auto mb-4 mt-2" style={{ maxWidth: cardsPerPlayer >= 4 ? '460px' : '380px', width: '90%' }}>
                   <ActionBar
                     card={isMyTurn && hasDrawnCard ? drawnCard : null}
                     visible={modal.type === 'none' && !drawnCardDismissed}
@@ -1048,6 +1048,7 @@ export default function Game() {
         onOpenDiscardReorder={() => setShowDiscardReorder(true)}
         showMonitor={showMonitor}
         onCloseMonitor={() => setShowMonitor(false)}
+        cardsPerPlayer={cardsPerPlayer}
       />
 
       {/* Legacy flying card (remote player animations) */}

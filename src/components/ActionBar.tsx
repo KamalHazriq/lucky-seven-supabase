@@ -186,19 +186,19 @@ function ActionBar({
                         Swap with slot
                       </p>
                       <div className="flex gap-1.5">
-                        {[0, 1, 2].map((i) => (
+                        {locks.map((locked, i) => (
                           <button
                             key={i}
                             onClick={() => onSwap(i)}
-                            disabled={locks[i]}
+                            disabled={locked}
                             className={`flex-1 min-h-[38px] rounded-xl text-xs font-bold transition-colors cursor-pointer ${
-                              locks[i]
+                              locked
                                 ? 'bg-secondary/50 text-muted-foreground cursor-not-allowed opacity-50'
                                 : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm'
                             }`}
                           >
-                            {isDesktop && !locks[i] && <Kbd>{i + 1}</Kbd>}
-                            {locks[i] ? '\u{1F512}' : '\u{2194}'} #{i + 1}
+                            {isDesktop && !locked && <Kbd>{i + 1}</Kbd>}
+                            {locked ? '\u{1F512}' : '\u{2194}'} #{i + 1}
                           </button>
                         ))}
                       </div>

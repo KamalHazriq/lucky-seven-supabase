@@ -83,13 +83,8 @@ async function _sendEvent(
   gameId?: string,
 ): Promise<void> {
   try {
-    // Use current session if available — don't force auth for analytics
-    const { data: { session } } = await supabase.auth.getSession()
-    const userId = session?.user?.id ?? null
-
     await supabase.rpc('track_event', {
       p_event_name: eventName,
-      p_user_id: userId,
       p_game_id: gameId ?? null,
       p_session_id: getSessionId(),
       p_route: getRoute(),

@@ -423,8 +423,6 @@ export async function leaveGame(gameId: string): Promise<void> {
 export async function sendChatMessage(
   gameId: string,
   text: string,
-  displayName: string,
-  seatIndex: number,
 ): Promise<void> {
   await ensureAuth()
 
@@ -432,8 +430,6 @@ export async function sendChatMessage(
   const { error } = await supabase.rpc('send_chat_message', {
     p_game_id: gameId,
     p_text: text.slice(0, 300),
-    p_display_name: displayName,
-    p_seat_index: seatIndex,
     p_msg_id: msgId,
   })
 

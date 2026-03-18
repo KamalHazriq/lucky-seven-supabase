@@ -31,8 +31,8 @@ function getStoredPref(): boolean | null {
  */
 export function useChat(
   gameId: string | undefined,
-  displayName: string,
-  seatIndex: number,
+  _displayName: string,
+  _seatIndex: number,
 ) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
@@ -134,11 +134,11 @@ export function useChat(
       if (now - lastSendRef.current < CHAT_THROTTLE_MS) return
       lastSendRef.current = now
 
-      sendChatMessage(gameId, text.trim(), displayName, seatIndex).catch((e) => {
+      sendChatMessage(gameId, text.trim()).catch((e) => {
         toast.error(`Chat failed: ${(e as Error).message}`)
       })
     },
-    [gameId, displayName, seatIndex],
+    [gameId],
   )
 
   return {

@@ -79,11 +79,7 @@ export function logClientError(error: unknown, context?: string): void {
 
 async function _sendError(err: Error, context?: string): Promise<void> {
   try {
-    const { data: { session } } = await supabase.auth.getSession()
-    const userId = session?.user?.id ?? null
-
     await supabase.rpc('log_client_error', {
-      p_user_id: userId,
       p_session_id: getSessionId(),
       p_error_name: err.name.slice(0, 200),
       p_message: err.message.slice(0, 2000),

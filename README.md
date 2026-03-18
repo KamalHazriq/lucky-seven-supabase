@@ -10,14 +10,14 @@ A real-time multiplayer card game for 2-8 players, built by Kamal Hazriq. Hosted
 ## Game Rules
 
 - **Deck**: 52 standard cards + Jokers
-- **Deal**: 3 cards face-down per player
+- **Deal**: 3 cards face-down per player by default, with an optional 4-card mode
 - **Goal**: Get the lowest total score
 - **Special rule**: 7s are worth 0
 
 ### Turn Flow
 
 1. Draw from the draw pile or take the top discard card.
-2. Swap the drawn card with one of your 3 face-down cards, discard it, or use its power.
+2. Swap the drawn card with one of your face-down cards, discard it, or use its power.
 
 ### Base Scoring
 
@@ -30,13 +30,27 @@ A real-time multiplayer card game for 2-8 players, built by Kamal Hazriq. Hosted
 
 | Card | Power | Effect |
 |---|---|---|
-| Jack | Peek All | Look at all 3 of your face-down cards |
+| Jack | Peek All | Look at all of your face-down cards |
 | Queen | Swap | Swap any two unlocked cards between players |
 | King | Lock | Lock any unlocked card so it cannot be swapped |
 | 10 | Unlock | Unlock a locked card |
 | Joker | Chaos | Shuffle another player's unlocked cards |
 
 Power assignments are configurable per game, so these defaults can be changed in the lobby setup.
+
+### Adjustable Game Settings
+
+Each lobby can be customized before the game starts. Current adjustable settings include:
+
+- **Cards per player**: 3 cards (default) or 4 cards
+- **Deck size**: 1x, 1.5x, or 2x deck
+- **Jokers in deck**: choose how many Jokers are included
+- **Turn timer**: optional per-turn timer with AFK protection
+- **Power assignments**: freely map the power effects to 10, Jack, Queen, King, and Joker
+- **Peek allows opponent**: let peek powers target your own cards only, or opponent cards too
+- **No Memory Mode**: peeked cards are shown temporarily and then hidden again instead of staying known
+
+These settings are stored in the shared game state and synced through Supabase so every player sees the same rules for that lobby.
 
 ### Lock Mechanics
 
@@ -73,7 +87,7 @@ supabase link --project-ref your-project-ref
 supabase db push
 ```
 
-Or manually run each migration in order from `00001_create_tables.sql` through `00017_client_error_logs.sql` in the Supabase SQL Editor.
+Or manually run each migration in order from `00001_create_tables.sql` through `00020_cards_per_player_and_no_memory_mode.sql` in the Supabase SQL Editor.
 
 ### 3. Seed Dev Config (Optional)
 
@@ -184,7 +198,7 @@ public/
 supabase/
 |-- functions/
 |   `-- maintenance/            # Edge function for scheduled maintenance
-`-- migrations/                 # SQL migrations (00001-00017)
+`-- migrations/                 # SQL migrations (00001-00020)
 .github/
 `-- workflows/
     |-- deploy.yml              # Build + deploy to GitHub Pages
@@ -228,7 +242,8 @@ All game state is stored in PostgreSQL via Supabase with Row Level Security (RLS
 
 - Realtime lobby and gameplay updates
 - In-game chat
-- Configurable power assignments and deck settings
+- Configurable hand size, power assignments, and deck settings
+- Optional no-memory peek mode
 - Turn timer with AFK protection
 - Vote kick flow
 - Rematch lobby flow

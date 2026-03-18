@@ -184,8 +184,10 @@ export default function Game() {
   const isDrawPhase = isMyTurn && turnPhase === 'draw'
   const isActionPhase = isMyTurn && turnPhase === 'action'
   const myPlayer = user ? players[user.uid] : null
-  const myLocks = (myPlayer?.locks ?? [false, false, false]) as [boolean, boolean, boolean]
+  const myLocks = myPlayer?.locks ?? [false, false, false]
   const powerAssignments = game?.settings?.powerAssignments ?? DEFAULT_GAME_SETTINGS.powerAssignments
+  const cardsPerPlayer = game?.settings?.cardsPerPlayer ?? DEFAULT_GAME_SETTINGS.cardsPerPlayer
+  const noMemoryMode = game?.settings?.noMemoryMode ?? DEFAULT_GAME_SETTINGS.noMemoryMode
   const spentPowerCardIds = game?.spentPowerCardIds ?? {}
   const myKnown = privateState?.known ?? {}
   // Check if any card is locked anywhere (for disabling unlock power when no targets)
@@ -248,6 +250,8 @@ export default function Game() {
     confirmSelection, setStampOverlays,
     discardTop: game?.discardTop ?? null,
     peekAllowsOpponent: game?.settings?.peekAllowsOpponent ?? false,
+    noMemoryMode,
+    cardsPerPlayer,
   })
 
   // Player order with local player first (for modals)
@@ -703,6 +707,8 @@ export default function Game() {
                         stampOverlay={stampOverlays[pid] ?? null}
                         chaosAnimation={!!chaosAnimations[pid]}
                         devAllHands={devMode.isDevMode && devMode.privileges?.canSeeAllCards ? devMode.allPlayerHands : null}
+                        localPrivateState={privateState ?? null}
+                        cardsPerPlayer={cardsPerPlayer}
                         {...selectionProps}
                       />
                       {game.currentTurnPlayerId === pid && turnTimer.remaining !== null && (
@@ -744,6 +750,7 @@ export default function Game() {
                     stampOverlay={stampOverlays[user.uid] ?? null}
                     chaosAnimation={!!chaosAnimations[user.uid]}
                     devShowAllCards={devMode.isDevMode && (devMode.privileges?.canSeeAllCards ?? false)}
+                    cardsPerPlayer={cardsPerPlayer}
                     {...selectionProps}
                   />
                   {isMyTurn && turnTimer.remaining !== null && (
@@ -817,6 +824,8 @@ export default function Game() {
                       stampOverlay={stampOverlays[pid] ?? null}
                       chaosAnimation={!!chaosAnimations[pid]}
                       devAllHands={devMode.isDevMode && devMode.privileges?.canSeeAllCards ? devMode.allPlayerHands : null}
+                      localPrivateState={privateState ?? null}
+                      cardsPerPlayer={cardsPerPlayer}
                       {...selectionProps}
                     />
                     {isTheirTurn && turnTimer.remaining !== null && (
@@ -914,6 +923,7 @@ export default function Game() {
                 stampOverlay={stampOverlays[user.uid] ?? null}
                 chaosAnimation={!!chaosAnimations[user.uid]}
                 devShowAllCards={devMode.isDevMode && (devMode.privileges?.canSeeAllCards ?? false)}
+                cardsPerPlayer={cardsPerPlayer}
                 {...selectionProps}
               />
               {isMyTurn && turnTimer.remaining !== null && (

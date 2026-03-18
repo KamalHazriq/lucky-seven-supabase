@@ -48,6 +48,8 @@ export async function createGame(
     deckSize: settings?.deckSize ?? DEFAULT_GAME_SETTINGS.deckSize,
     turnSeconds: settings?.turnSeconds ?? DEFAULT_GAME_SETTINGS.turnSeconds,
     peekAllowsOpponent: settings?.peekAllowsOpponent ?? DEFAULT_GAME_SETTINGS.peekAllowsOpponent,
+    cardsPerPlayer: settings?.cardsPerPlayer ?? DEFAULT_GAME_SETTINGS.cardsPerPlayer,
+    noMemoryMode: settings?.noMemoryMode ?? DEFAULT_GAME_SETTINGS.noMemoryMode,
   }
 
   const { data, error } = await supabase.rpc('create_game', {
@@ -240,12 +242,13 @@ export async function discardDrawn(gameId: string): Promise<void> {
 // ═════════════════════════════════════════════════════════════════
 
 // ─── Peek One ───────────────────────────────────────────────────
-export async function usePeekOne(gameId: string, slotIndex: number): Promise<Card> {
+export async function usePeekOne(gameId: string, slotIndex: number, noMemory = false): Promise<Card> {
   await ensureAuth()
 
   const { data, error } = await supabase.rpc('use_peek_one', {
     p_game_id: gameId,
     p_slot_index: slotIndex,
+    p_no_memory: noMemory,
   })
 
   if (error) throw new Error(error.message)
@@ -253,11 +256,12 @@ export async function usePeekOne(gameId: string, slotIndex: number): Promise<Car
 }
 
 // ─── Peek All ───────────────────────────────────────────────────
-export async function usePeekAll(gameId: string): Promise<Record<number, Card>> {
+export async function usePeekAll(gameId: string, noMemory = false): Promise<Record<number, Card>> {
   await ensureAuth()
 
   const { data, error } = await supabase.rpc('use_peek_all', {
     p_game_id: gameId,
+    p_no_memory: noMemory,
   })
 
   if (error) throw new Error(error.message)
@@ -269,6 +273,7 @@ export async function usePeekOpponent(
   gameId: string,
   targetPlayerId: string,
   slotIndex: number,
+  noMemory = false,
 ): Promise<{ card: Card; playerName: string }> {
   await ensureAuth()
 
@@ -276,6 +281,7 @@ export async function usePeekOpponent(
     p_game_id: gameId,
     p_target_player: targetPlayerId,
     p_slot_index: slotIndex,
+    p_no_memory: noMemory,
   })
 
   if (error) throw new Error(error.message)
@@ -286,16 +292,18 @@ export async function usePeekOpponent(
 export async function usePeekAllOpponent(
   gameId: string,
   targetPlayerId: string,
-): Promise<{ cards: Record<number, Card>; playerName: string; locks: [boolean, boolean, boolean] }> {
+  noMemory = false,
+): Promise<{ cards: Record<number, Card>; playerName: string; locks: boolean[] }> {
   await ensureAuth()
 
   const { data, error } = await supabase.rpc('use_peek_all_opponent', {
     p_game_id: gameId,
     p_target_player: targetPlayerId,
+    p_no_memory: noMemory,
   })
 
   if (error) throw new Error(error.message)
-  return data as { cards: Record<number, Card>; playerName: string; locks: [boolean, boolean, boolean] }
+  return data as { cards: Record<number, Card>; playerName: string; locks: boolean[] }
 }
 
 // ─── Swap Power (Queen) ─────────────────────────────────────────
@@ -554,6 +562,8 @@ export async function playAgain(
     deckSize: settings?.deckSize ?? DEFAULT_GAME_SETTINGS.deckSize,
     turnSeconds: settings?.turnSeconds ?? DEFAULT_GAME_SETTINGS.turnSeconds,
     peekAllowsOpponent: settings?.peekAllowsOpponent ?? DEFAULT_GAME_SETTINGS.peekAllowsOpponent,
+    cardsPerPlayer: settings?.cardsPerPlayer ?? DEFAULT_GAME_SETTINGS.cardsPerPlayer,
+    noMemoryMode: settings?.noMemoryMode ?? DEFAULT_GAME_SETTINGS.noMemoryMode,
   }
 
   const { data, error } = await supabase.rpc('play_again', {

@@ -99,9 +99,10 @@ function CardView({
   }, [showTooltip])
 
   // ─── Font sizes per card size ───
-  const suitFontSize = size === 'lg' ? '1.6rem' : size === 'md' ? '1.25rem' : '0.95rem'
-  const rankFontSize = size === 'lg' ? '0.7rem' : size === 'md' ? '0.6rem' : '0.45rem'
-  const cornerSuitSize = size === 'lg' ? '0.55rem' : size === 'md' ? '0.45rem' : '0.35rem'
+  const suitFontSize = size === 'lg' ? '1.8rem' : size === 'md' ? '1.5rem' : '1.1rem'
+  const rankFontSize = size === 'lg' ? '0.85rem' : size === 'md' ? '0.75rem' : '0.58rem'
+  const cornerSuitSize = size === 'lg' ? '0.6rem' : size === 'md' ? '0.52rem' : '0.4rem'
+  const isFaceCard = card && !card.isJoker && (card.rank === 'J' || card.rank === 'Q' || card.rank === 'K')
   const cornerTop = size === 'lg' ? '3px' : '2px'
   const cornerLeft = size === 'lg' ? '4px' : '3px'
 
@@ -177,7 +178,10 @@ function CardView({
                   color: suitColor(card),
                 }}
               >
-                <span className="font-bold" style={{ fontSize: rankFontSize, lineHeight: 1 }}>
+                <span
+                  className={isFaceCard ? 'font-black' : 'font-bold'}
+                  style={{ fontSize: rankFontSize, lineHeight: 1, fontStyle: isFaceCard ? 'italic' : 'normal' }}
+                >
                   {card.rank}
                 </span>
                 <span style={{ fontSize: cornerSuitSize, lineHeight: 1, marginTop: '0px' }}>
@@ -195,7 +199,10 @@ function CardView({
                   transform: 'rotate(180deg)',
                 }}
               >
-                <span className="font-bold" style={{ fontSize: rankFontSize, lineHeight: 1 }}>
+                <span
+                  className={isFaceCard ? 'font-black' : 'font-bold'}
+                  style={{ fontSize: rankFontSize, lineHeight: 1, fontStyle: isFaceCard ? 'italic' : 'normal' }}
+                >
                   {card.rank}
                 </span>
                 <span style={{ fontSize: cornerSuitSize, lineHeight: 1, marginTop: '0px' }}>
@@ -216,11 +223,12 @@ function CardView({
 
               {/* Rank below suit */}
               <span
-                className="font-extrabold leading-none"
+                className={isFaceCard ? 'font-black leading-none' : 'font-extrabold leading-none'}
                 style={{
                   color: suitColor(card),
-                  fontSize: size === 'lg' ? '0.75rem' : size === 'md' ? '0.6rem' : '0.5rem',
+                  fontSize: size === 'lg' ? '0.85rem' : size === 'md' ? '0.72rem' : '0.55rem',
                   marginTop: '1px',
+                  fontStyle: isFaceCard ? 'italic' : 'normal',
                 }}
               >
                 {card.rank}
@@ -303,9 +311,14 @@ function CardView({
       )}
 
       {known && !faceUp && (
-        <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-[9px] font-semibold px-1.5 py-0.5 rounded-full z-10">
+        <motion.span
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 500, damping: 20, mass: 0.5 }}
+          className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-[9px] font-semibold px-1.5 py-0.5 rounded-full z-10"
+        >
           Known
-        </span>
+        </motion.span>
       )}
 
       {label && (

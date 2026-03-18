@@ -7,7 +7,7 @@ import { getCardRankKey, EFFECT_LABELS, DEFAULT_POWER_ASSIGNMENTS } from '../lib
 interface DrawnCardModalProps {
   card: Card | null
   open: boolean
-  locks: [boolean, boolean, boolean]
+  locks: boolean[]
   powerAssignments: PowerAssignments
   spentPowerCardIds: Record<string, boolean>
   /** Player's known cards map (slot index string → Card) */

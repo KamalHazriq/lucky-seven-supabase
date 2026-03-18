@@ -32,7 +32,7 @@ export type PowerAssignments = Record<PowerRankKey, PowerEffectType>
 
 export const ALL_EFFECT_TYPES: { value: PowerEffectType; label: string }[] = [
   { value: 'peek_one_of_your_cards', label: 'Peek 1 card' },
-  { value: 'peek_all_three_of_your_cards', label: 'Peek all 3 cards' },
+  { value: 'peek_all_three_of_your_cards', label: 'Peek all cards' },
   { value: 'swap_one_to_one', label: 'Swap 1:1' },
   { value: 'lock_one_card', label: 'Lock 1 card' },
   { value: 'unlock_one_locked_card', label: 'Unlock 1 card' },
@@ -57,6 +57,8 @@ export interface GameSettings {
   deckSize: DeckSize // 1 = standard, 1.5 = 1 full + 27 extra, 2 = double deck
   turnSeconds: TurnSeconds // 0 = unlimited, 30/60/90/120
   peekAllowsOpponent: boolean // When true, peek powers can also target opponent cards
+  cardsPerPlayer: 3 | 4 // Number of cards dealt per player (default 3)
+  noMemoryMode: boolean // When true, peeked cards are shown briefly but not remembered
 }
 
 export const DEFAULT_GAME_SETTINGS: GameSettings = {
@@ -65,6 +67,8 @@ export const DEFAULT_GAME_SETTINGS: GameSettings = {
   deckSize: 1,
   turnSeconds: 0,
   peekAllowsOpponent: true,
+  cardsPerPlayer: 3,
+  noMemoryMode: false,
 }
 
 /** Human-readable effect label for UI */
@@ -131,9 +135,9 @@ export interface PlayerDoc {
   seatIndex: number
   connected: boolean
   /** Public lock state per slot — visible to all players */
-  locks: [boolean, boolean, boolean]
+  locks: boolean[]
   /** Who locked each slot (public metadata) */
-  lockedBy: [LockInfo, LockInfo, LockInfo]
+  lockedBy: LockInfo[]
   /** Optional color key (index into LOBBY_COLORS palette). If set, overrides seat color. */
   colorKey?: number
   /** Consecutive AFK timeout strikes. Reset to 0 on any action. Kicked on 2. */

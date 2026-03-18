@@ -31,7 +31,7 @@ interface GameModalsProps {
   isMyTurn: boolean
   hasDrawnCard: boolean
   drawnCard: Card | null
-  myLocks: [boolean, boolean, boolean]
+  myLocks: boolean[]
   myKnown: Record<string, Card>
   powerAssignments: typeof DEFAULT_GAME_SETTINGS.powerAssignments
   spentPowerCardIds: Record<string, boolean>

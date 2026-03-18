@@ -5,7 +5,7 @@ import type { Card } from '../lib/types'
 interface PeekAllOpponentModalProps {
   open: boolean
   revealedCards: Record<number, Card>
-  locks: [boolean, boolean, boolean]
+  locks: boolean[]
   playerName: string
   onClose: () => void
 }

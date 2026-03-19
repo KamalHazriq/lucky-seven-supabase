@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
@@ -15,7 +15,7 @@ import TurnQueue from '../components/TurnQueue'
 import { useActionHighlight } from '../hooks/useActionHighlight'
 import { useFlyingCard } from '../hooks/useFlyingCard'
 import FlyingCard from '../components/FlyingCard'
-import StagingSlot from '../components/StagingSlot'
+import StagingSlot, { type StagingDragPoint } from '../components/StagingSlot'
 import DiscardFlip from '../components/DiscardFlip'
 import DiscardReorderModal from '../components/DiscardReorderModal'
 import FeedbackModal from '../components/FeedbackModal'
@@ -40,8 +40,8 @@ import { useRemotePowerToast } from '../hooks/useRemotePowerToast'
 import { useChaosAnimation } from '../hooks/useChaosAnimation'
 import { useRemoteAnimations } from '../hooks/useRemoteAnimations'
 import { useGameActions } from '../hooks/useGameActions'
+import { useStagedCardDrop } from '../hooks/useStagedCardDrop'
 import { copyToClipboard } from '../lib/share'
-import type { Card } from '../lib/types'
 import { DEFAULT_GAME_SETTINGS } from '../lib/types'
 import { normalizeLocks } from '../lib/slotState'
 
@@ -66,18 +66,15 @@ export default function Game() {
   const { uiMode, toggleMode: toggleUiMode, isDesktop } = useUiMode()
   const { position: logPosition, toggle: toggleLogPosition, canSidebar: canLogSidebar } = useLogPosition()
   const turnTimer = useTurnTimer(game, gameId)
-  const { flyingCard, triggerFly, queueFly, flushQueue, clearFly } = useFlyingCard()
+  const { flyingCard, triggerFly, queueFly, clearFly } = useFlyingCard()
   const {
     choreo,
     startDiscardTake,
-    onStagingArrival,
     startSwapFromStaging,
-    onSlotArrival,
-    onDiscardArrival,
     startDiscardAction,
     startPileDraw,
-    onPlayerArrival,
     reconstructStaging,
+    completeFlight,
     reset: resetChoreo,
   } = useChoreography()
   const drawPileRef = useRef<HTMLDivElement>(null)
@@ -103,10 +100,6 @@ export default function Game() {
 
   // Stamp overlay state for lock/unlock choreography (Section E)
   const [stampOverlays, setStampOverlays] = useState<Record<string, 'lock' | 'unlock' | null>>({})
-
-  // Remote staging: when another player is in action phase, show a card in staging
-  const [remoteStaging, setRemoteStaging] = useState<{ card: Card | null; faceUp: boolean; ownerColor?: string } | null>(null)
-
   // Measure sticky header + banner stack height for layout offsets.
   // Sets CSS custom properties so the left sidebar and table zone adapt dynamically.
   useEffect(() => {
@@ -153,6 +146,11 @@ export default function Game() {
   // Derived state
   const drawnCard = privateState?.drawnCard ?? null
   const hasDrawnCard = !!drawnCard
+  const stagingActive = choreo.phase === 'staging'
+  const stagingCard = stagingActive ? choreo.staging.card : null
+  const stagingFaceUp = stagingActive ? choreo.staging.faceUp : false
+  const stagingOwnerColor = stagingActive ? choreo.staging.ownerColor : undefined
+  const stagingPending = stagingActive ? !!choreo.staging.pending : false
 
   // Reset dismissed state when drawn card is consumed/cleared
   useEffect(() => {
@@ -222,15 +220,15 @@ export default function Game() {
       game, players, localUserId: user?.uid, reduced,
       drawPileRef, discardPileRef, stagingRef, localPanelRef, otherPanelRefs,
       triggerFly, queueFly,
+      startPileDraw, startDiscardTake, startSwapFromStaging, startDiscardAction,
     },
-    { setRemoteStaging },
   )
 
   // All game action handlers, busy/modal state, keyboard shortcuts
   const {
     busy, modal, setModal, canDraw, canTakeDiscard, peekReveal,
     handleDrawPile, handleTakeDiscard, handleCancelDraw, handleSwap, handleDiscard,
-    handleUsePower, handleChoreoComplete, handleSelectionConfirm, handleSelectionClick,
+    handleUsePower, handleSelectionConfirm, handleSelectionClick,
     handlePlayerSelect, handlePeekSelect, handleSwapConfirm, handleLockSelect,
     handleUnlockSelect, handleRearrangeSelect, handlePeekOpponentSelect, handlePeekAllOpponentSelect,
     handlePeekChoiceSelf, handlePeekChoiceOpponent, handleCancelPower,
@@ -240,9 +238,8 @@ export default function Game() {
     myLocks, uiMode, drawnCardDismissed,
     drawPileRef, discardPileRef, stagingRef, localPanelRef,
     choreo, startDiscardTake, startSwapFromStaging, startDiscardAction,
-    startPileDraw, onStagingArrival, onSlotArrival, onDiscardArrival,
-    onPlayerArrival, reconstructStaging, resetChoreo,
-    triggerFly, flushQueue,
+    startPileDraw, reconstructStaging, resetChoreo,
+    triggerFly,
     selection, isSelecting, startSelection, selectTarget,
     confirmSelection, setStampOverlays,
     discardTop: game?.discardTop ?? null,
@@ -250,6 +247,49 @@ export default function Game() {
     noMemoryMode,
     cardsPerPlayer,
   })
+
+  const stagingInteractive = stagingActive && isMyTurn && hasDrawnCard && modal.type === 'none' && !isSelecting
+  const { dropTarget, resolveDropTarget, updateDropTarget, clearDropTarget } = useStagedCardDrop({
+    enabled: stagingInteractive,
+    lockedSlots: myLocks,
+    localPanelRef,
+    discardPileRef,
+  })
+
+  useEffect(() => {
+    if (!stagingInteractive) clearDropTarget()
+  }, [clearDropTarget, stagingInteractive])
+
+  const handleStagingDragMove = useCallback(({ x, y }: StagingDragPoint) => {
+    updateDropTarget(x, y)
+  }, [updateDropTarget])
+
+  const handleStagingDragEnd = useCallback(({ x, y, sourceRect }: StagingDragPoint) => {
+    const target = resolveDropTarget(x, y)
+    clearDropTarget()
+    if (!stagingInteractive || !target) return
+
+    if (target.kind === 'discard') {
+      handleDiscard(sourceRect)
+      return
+    }
+
+    handleSwap(target.slotIndex, sourceRect)
+  }, [clearDropTarget, handleDiscard, handleSwap, resolveDropTarget, stagingInteractive])
+
+  const stagingDropHint = dropTarget?.kind === 'discard'
+    ? 'Release to discard'
+    : dropTarget?.kind === 'slot'
+      ? `Release on slot #${dropTarget.slotIndex + 1}`
+      : null
+
+  const localSlotOverlays = useMemo(() => {
+    const base: Record<number, string> = user ? { ...(slotOverlays[user.uid] ?? {}) } : {}
+    if (dropTarget?.kind === 'slot') {
+      base[dropTarget.slotIndex] = '#6366f1'
+    }
+    return Object.keys(base).length > 0 ? base : null
+  }, [dropTarget, slotOverlays, user])
 
   // Player order with local player first (for modals)
   const modalPlayerOrder = game ? [
@@ -343,6 +383,25 @@ export default function Game() {
     selectedTarget: selection.firstTarget,
     selectedSecondTarget: selection.secondTarget,
   } : {}
+
+  const stagingSlot = (
+    <StagingSlot
+      ref={stagingRef}
+      card={stagingCard}
+      faceUp={stagingFaceUp}
+      active={stagingActive}
+      ownerColor={stagingOwnerColor}
+      interactive={stagingInteractive}
+      pending={stagingPending}
+      dropHint={stagingDropHint}
+      onDragMove={stagingInteractive ? handleStagingDragMove : undefined}
+      onDragEnd={stagingInteractive ? handleStagingDragEnd : undefined}
+      onDragCancel={clearDropTarget}
+      onResolve={hasDrawnCard && isMyTurn && (drawnCardDismissed || modal.type !== 'none') && !isSelecting
+        ? () => { setModal({ type: 'none' }); setDrawnCardDismissed(false) }
+        : undefined}
+    />
+  )
 
   return (
     <div className={`min-h-dvh flex flex-col ${logPosition === 'left' ? '' : 'max-w-5xl mx-auto'}`}>
@@ -626,25 +685,14 @@ export default function Game() {
                     </div>
                   </div>
                   {/* Staging slot — shows local choreo or remote staging */}
-                  {(() => {
-                    // For local pile draws, show the actual drawn card face-up in staging
-                    const isLocalPileStaging = choreo.phase === 'staging' && choreo.staging.source === 'pile' && drawnCard
-                    const stagingCard = isLocalPileStaging ? drawnCard : (choreo.phase === 'staging' ? choreo.staging.card : remoteStaging?.card ?? null)
-                    const stagingFaceUp = isLocalPileStaging ? true : (choreo.phase === 'staging' ? choreo.staging.faceUp : remoteStaging?.faceUp ?? false)
-                    return (
-                      <StagingSlot
-                        ref={stagingRef}
-                        card={stagingCard}
-                        faceUp={stagingFaceUp}
-                        active={choreo.phase === 'staging' || !!remoteStaging}
-                        ownerColor={remoteStaging?.ownerColor}
-                        onResolve={hasDrawnCard && isMyTurn && (drawnCardDismissed || modal.type !== 'none') && !isSelecting
-                          ? () => { setModal({ type: 'none' }); setDrawnCardDismissed(false) }
-                          : undefined}
-                      />
-                    )
-                  })()}
-                  <div className={`text-center relative${canTakeDiscard ? ' pile-interactive' : ''}`} ref={discardPileRef}>
+                  {stagingSlot}
+                  <div
+                    className={`text-center relative${canTakeDiscard ? ' pile-interactive' : ''}${dropTarget?.kind === 'discard' ? ' pile-interactive' : ''}`}
+                    ref={discardPileRef}
+                    style={dropTarget?.kind === 'discard'
+                      ? { filter: 'drop-shadow(0 0 18px rgba(251,191,36,0.28))' }
+                      : undefined}
+                  >
                     <p className="text-[10px] text-muted-foreground mb-1">Discard</p>
                     {game.discardTop && privateState?.drawnCardSource !== 'discard' ? (
                       <div className="relative">
@@ -742,7 +790,7 @@ export default function Game() {
                     slotClickable={isActionPhase && hasDrawnCard && modal.type === 'none' && !isSelecting}
                     actionHighlight={actionHighlights[user.uid] ?? null}
                     queueNumber={queueNumbers[user.uid] ?? null}
-                    slotOverlays={slotOverlays[user.uid] ?? null}
+                    slotOverlays={localSlotOverlays}
                     swapLabels={swapLabels[user.uid] ?? null}
                     stampOverlay={stampOverlays[user.uid] ?? null}
                     chaosAnimation={!!chaosAnimations[user.uid]}
@@ -853,25 +901,15 @@ export default function Game() {
               </div>
 
               {/* Staging slot — shows local choreo or remote staging */}
-              {(() => {
-                const isLocalPileStaging = choreo.phase === 'staging' && choreo.staging.source === 'pile' && drawnCard
-                const stagingCard = isLocalPileStaging ? drawnCard : (choreo.phase === 'staging' ? choreo.staging.card : remoteStaging?.card ?? null)
-                const stagingFaceUp = isLocalPileStaging ? true : (choreo.phase === 'staging' ? choreo.staging.faceUp : remoteStaging?.faceUp ?? false)
-                return (
-                  <StagingSlot
-                    ref={stagingRef}
-                    card={stagingCard}
-                    faceUp={stagingFaceUp}
-                    active={choreo.phase === 'staging' || !!remoteStaging}
-                    ownerColor={remoteStaging?.ownerColor}
-                    onResolve={hasDrawnCard && isMyTurn && (drawnCardDismissed || modal.type !== 'none') && !isSelecting
-                      ? () => { setModal({ type: 'none' }); setDrawnCardDismissed(false) }
-                      : undefined}
-                  />
-                )
-              })()}
+              {stagingSlot}
 
-              <div className={`text-center relative${canTakeDiscard ? ' pile-interactive' : ''}`} ref={discardPileRef}>
+              <div
+                className={`text-center relative${canTakeDiscard ? ' pile-interactive' : ''}${dropTarget?.kind === 'discard' ? ' pile-interactive' : ''}`}
+                ref={discardPileRef}
+                style={dropTarget?.kind === 'discard'
+                  ? { filter: 'drop-shadow(0 0 18px rgba(251,191,36,0.28))' }
+                  : undefined}
+              >
                 <p className="text-xs text-muted-foreground mb-2">Discard</p>
                 {game.discardTop && privateState?.drawnCardSource !== 'discard' ? (
                   <div className="relative">
@@ -915,7 +953,7 @@ export default function Game() {
                 slotClickable={isActionPhase && hasDrawnCard && modal.type === 'none' && !isSelecting}
                 actionHighlight={actionHighlights[user.uid] ?? null}
                 queueNumber={queueNumbers[user.uid] ?? null}
-                slotOverlays={slotOverlays[user.uid] ?? null}
+                slotOverlays={localSlotOverlays}
                 swapLabels={swapLabels[user.uid] ?? null}
                 stampOverlay={stampOverlays[user.uid] ?? null}
                 chaosAnimation={!!chaosAnimations[user.uid]}
@@ -1069,15 +1107,9 @@ export default function Game() {
           faceUp={choreo.flyFaceUp}
           card={choreo.flyCard}
           ownerColor={choreo.flyOwnerColor}
-          onComplete={handleChoreoComplete}
+          onComplete={completeFlight}
           reduced={reduced}
-          duration={
-            choreo.phase === 'flyToStaging' ? 1.5
-              : choreo.phase === 'flyToPlayer' ? 1.4
-              : choreo.phase === 'flySwapToDiscard' ? 1.6
-              : choreo.phase === 'flyToSlot' ? 1.5
-              : 1.7
-          }
+          duration={choreo.flyDuration}
         />
       )}
 

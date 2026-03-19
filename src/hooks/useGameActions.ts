@@ -93,22 +93,17 @@ interface UseGameActionsParams {
   // Choreography
   choreo: {
     phase: string
-    staging: { card: Card | null; faceUp: boolean }
+    staging: { card: Card | null; faceUp: boolean; source?: 'pile' | 'discard' | null }
   }
-  startDiscardTake: (card: Card, from: DOMRect, to: DOMRect) => void
-  startSwapFromStaging: (staging: DOMRect, player: DOMRect, discard: DOMRect, card: Card | null) => void
-  startDiscardAction: (from: DOMRect, to: DOMRect, card: Card | null, faceUp: boolean) => void
-  startPileDraw: (from: DOMRect, to: DOMRect) => void
-  onStagingArrival: () => void
-  onSlotArrival: () => void
-  onDiscardArrival: () => void
-  onPlayerArrival: () => void
-  reconstructStaging: (card: Card | null, source: 'pile' | 'discard' | null) => void
+  startDiscardTake: (card: Card, from: DOMRect, to: DOMRect, ownerColor?: string) => void
+  startSwapFromStaging: (staging: DOMRect, player: DOMRect, discard: DOMRect, card: Card | null, ownerColor?: string) => void
+  startDiscardAction: (from: DOMRect, to: DOMRect, card: Card | null, faceUp: boolean, ownerColor?: string) => void
+  startPileDraw: (from: DOMRect, to: DOMRect, ownerColor?: string) => void
+  reconstructStaging: (card: Card | null, source: 'pile' | 'discard' | null, ownerColor?: string) => void
   resetChoreo: () => void
 
   // Flying card
   triggerFly: (from: DOMRect, to: DOMRect, faceUp: boolean, card?: Card | null, ownerColor?: string) => void
-  flushQueue: () => void
 
   // Selection mode
   selection: SelectionModeState
@@ -139,10 +134,9 @@ interface UseGameActionsReturn {
   handleDrawPile: () => void
   handleTakeDiscard: () => void
   handleCancelDraw: () => void
-  handleSwap: (slotIndex: number) => void
-  handleDiscard: () => void
+  handleSwap: (slotIndex: number, fromRect?: DOMRect | null) => void
+  handleDiscard: (fromRect?: DOMRect | null) => void
   handleUsePower: (rankKey: PowerRankKey, effectType: PowerEffectType) => void
-  handleChoreoComplete: () => void
   handleSelectionConfirm: () => void
   handleSelectionClick: (target: SelectedTarget) => void
   handlePlayerSelect: (playerId: string) => void
@@ -165,9 +159,8 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
     uiMode, drawnCardDismissed,
     drawPileRef, discardPileRef, stagingRef, localPanelRef,
     choreo, startDiscardTake, startSwapFromStaging, startDiscardAction,
-    startPileDraw, onStagingArrival, onSlotArrival, onDiscardArrival,
-    onPlayerArrival, reconstructStaging, resetChoreo,
-    triggerFly, flushQueue,
+    startPileDraw, reconstructStaging, resetChoreo,
+    triggerFly,
     selection, isSelecting, startSelection, selectTarget, confirmSelection,
     setStampOverlays, discardTop, peekAllowsOpponent, noMemoryMode, cardsPerPlayer,
   } = params
@@ -177,7 +170,6 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
   const [modal, setModal] = useState<ModalState>({ type: 'none' })
   const [peekReveal, setPeekReveal] = useState<{ slot: number; card: Card } | null>(null)
   const peekTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const hasReconstructedRef = useRef(false)
 
   const canDraw = isDrawPhase && !busy
   const canTakeDiscard = canDraw && !!discardTop
@@ -189,13 +181,14 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
     }
   }, [])
 
-  const withBusy = useCallback(async (fn: () => Promise<void>) => {
+  const withBusy = useCallback(async (fn: () => Promise<void>, onError?: () => void) => {
     if (busyRef.current) return
     busyRef.current = true
     setBusy(true)
     try {
       await fn()
     } catch (e) {
+      onError?.()
       toast.error((e as Error).message)
       playSfx('error'); vibrate(100)
     } finally {
@@ -204,36 +197,45 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
     }
   }, [])
 
+  const getLocalSlotRect = useCallback((slotIndex: number): DOMRect | null => {
+    const panelEl = localPanelRef.current
+    if (!panelEl) return null
+
+    const slotEl = panelEl.querySelector<HTMLElement>(`[data-slot="${slotIndex}"]`)
+    if (slotEl) return slotEl.getBoundingClientRect()
+
+    const rect = panelEl.getBoundingClientRect()
+    const segmentWidth = rect.width / Math.max(cardsPerPlayer, 1)
+    return new DOMRect(
+      rect.left + segmentWidth * slotIndex + segmentWidth * 0.1,
+      rect.top + rect.height * 0.35,
+      segmentWidth * 0.8,
+      rect.height * 0.6,
+    )
+  }, [cardsPerPlayer, localPanelRef])
+
   // ─── Reconstruct staging on resume/refresh ──────
   useEffect(() => {
-    if (hasReconstructedRef.current) return
-    if (!isMyTurn || !hasDrawnCard || !privateState) return
-    if (choreo.phase !== 'idle') return
-    hasReconstructedRef.current = true
-    reconstructStaging(drawnCard, privateState.drawnCardSource)
-  }, [isMyTurn, hasDrawnCard, privateState, choreo.phase, drawnCard, reconstructStaging])
-
-  // Reset reconstruction flag when drawn card is consumed
-  useEffect(() => {
-    if (!hasDrawnCard) {
-      hasReconstructedRef.current = false
-      if (choreo.phase === 'staging') resetChoreo()
-    }
-  }, [hasDrawnCard, choreo.phase, resetChoreo])
+    if (!isMyTurn || !privateState) return
+    reconstructStaging(privateState.drawnCard, privateState.drawnCardSource)
+  }, [isMyTurn, privateState, reconstructStaging])
 
   // ─── Card action handlers ──────────────────────
   const handleDrawPile = () => {
     if (!canDraw) return
     const fromEl = drawPileRef.current
     const stagingEl = stagingRef.current
-    withBusy(async () => {
+    playSfx('draw')
+    vibrate()
+    if (!reduced && fromEl && stagingEl) {
+      startPileDraw(fromEl.getBoundingClientRect(), stagingEl.getBoundingClientRect())
+    } else {
+      reconstructStaging(null, 'pile')
+    }
+    void withBusy(async () => {
       await drawFromPile(gameId!)
-      playSfx('draw'); vibrate()
-      if (!reduced && fromEl && stagingEl) {
-        startPileDraw(fromEl.getBoundingClientRect(), stagingEl.getBoundingClientRect())
-      } else {
-        reconstructStaging(drawnCard, 'pile')
-      }
+    }, () => {
+      resetChoreo()
     })
   }
 
@@ -242,107 +244,108 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
     const fromEl = discardPileRef.current
     const stagingEl = stagingRef.current
     const discardCard = discardTop
-    withBusy(async () => {
+    playSfx('take')
+    vibrate()
+    if (!reduced && fromEl && stagingEl && discardCard) {
+      startDiscardTake(discardCard, fromEl.getBoundingClientRect(), stagingEl.getBoundingClientRect())
+    } else {
+      reconstructStaging(discardCard, 'discard')
+    }
+    void withBusy(async () => {
       await takeFromDiscard(gameId!)
-      playSfx('take'); vibrate()
-      if (!reduced && fromEl && stagingEl && discardCard) {
-        startDiscardTake(discardCard, fromEl.getBoundingClientRect(), stagingEl.getBoundingClientRect())
-      } else {
-        reconstructStaging(discardCard, 'discard')
-      }
+    }, () => {
+      resetChoreo()
     })
   }
 
   const handleCancelDraw = useCallback(() => {
     const source = privateState?.drawnCardSource
-    withBusy(async () => {
+    const stagingEl = stagingRef.current
+    const discardEl = discardPileRef.current
+    const stagedCard = choreo.staging.card ?? drawnCard
+
+    if (source === 'discard' && !reduced && stagingEl && discardEl) {
+      startDiscardAction(
+        stagingEl.getBoundingClientRect(),
+        discardEl.getBoundingClientRect(),
+        stagedCard,
+        choreo.staging.faceUp || !!stagedCard,
+      )
+    } else {
+      resetChoreo()
+    }
+
+    void withBusy(async () => {
       await cancelDraw(gameId!)
-      if (source === 'discard') {
-        const stagingEl = stagingRef.current
-        const discardEl = discardPileRef.current
-        if (!reduced && stagingEl && discardEl) {
-          startDiscardAction(
-            stagingEl.getBoundingClientRect(),
-            discardEl.getBoundingClientRect(),
-            choreo.staging.card,
-            choreo.staging.faceUp,
-          )
-        } else {
-          resetChoreo()
-        }
-      } else {
-        resetChoreo()
-      }
+    }, () => {
+      reconstructStaging(stagedCard, source ?? null)
     })
-  }, [gameId, privateState?.drawnCardSource, reduced, choreo.staging, startDiscardAction, resetChoreo, withBusy, stagingRef, discardPileRef])
+  }, [gameId, privateState?.drawnCardSource, reduced, choreo.staging, drawnCard, startDiscardAction, resetChoreo, withBusy, stagingRef, discardPileRef, reconstructStaging])
 
-  const handleSwap = useCallback((slotIndex: number) => {
+  const handleSwap = useCallback((slotIndex: number, fromRect?: DOMRect | null) => {
     setModal({ type: 'none' })
     const stagingEl = stagingRef.current
-    const localEl = localPanelRef.current
     const discardEl = discardPileRef.current
-    withBusy(async () => {
+    const slotRect = getLocalSlotRect(slotIndex)
+    const originRect = fromRect ?? stagingEl?.getBoundingClientRect() ?? null
+
+    playSfx('swap')
+    vibrate()
+
+    if (!reduced && originRect && slotRect && discardEl) {
+      startSwapFromStaging(
+        originRect,
+        slotRect,
+        discardEl.getBoundingClientRect(),
+        null,
+      )
+    } else {
+      resetChoreo()
+    }
+
+    void withBusy(async () => {
       await swapWithSlot(gameId!, slotIndex)
-      playSfx('swap'); vibrate()
-      if (!reduced && choreo.phase === 'staging' && stagingEl && localEl && discardEl) {
-        startSwapFromStaging(
-          stagingEl.getBoundingClientRect(),
-          localEl.getBoundingClientRect(),
-          discardEl.getBoundingClientRect(),
-          null,
-        )
-      } else {
-        resetChoreo()
-        flushQueue()
-      }
+    }, () => {
+      reconstructStaging(drawnCard ?? choreo.staging.card, privateState?.drawnCardSource ?? choreo.staging.source ?? null)
     })
-  }, [gameId, reduced, choreo.phase, startSwapFromStaging, resetChoreo, flushQueue, withBusy, stagingRef, localPanelRef, discardPileRef])
+  }, [gameId, reduced, getLocalSlotRect, startSwapFromStaging, resetChoreo, withBusy, stagingRef, discardPileRef, drawnCard, choreo.staging, privateState?.drawnCardSource, reconstructStaging])
 
-  const handleDiscard = () => {
+  const handleDiscard = (fromRect?: DOMRect | null) => {
     setModal({ type: 'none' })
     const stagingEl = stagingRef.current
     const localEl = localPanelRef.current
     const discardEl = discardPileRef.current
-    withBusy(async () => {
+    const originRect = fromRect
+      ?? stagingEl?.getBoundingClientRect()
+      ?? localEl?.getBoundingClientRect()
+      ?? null
+    const flightCard = choreo.staging.card ?? drawnCard
+    const flightFaceUp = choreo.staging.faceUp || !!flightCard
+
+    playSfx('discard')
+
+    if (!reduced && originRect && discardEl) {
+      startDiscardAction(
+        originRect,
+        discardEl.getBoundingClientRect(),
+        flightCard,
+        flightFaceUp,
+      )
+    } else if (!reduced && localEl && discardEl) {
+      triggerFly(localEl.getBoundingClientRect(), discardEl.getBoundingClientRect(), false)
+      resetChoreo()
+    } else {
+      resetChoreo()
+    }
+
+    void withBusy(async () => {
       await discardDrawn(gameId!)
-      playSfx('discard')
-      if (!reduced && choreo.phase === 'staging' && stagingEl && discardEl) {
-        startDiscardAction(
-          stagingEl.getBoundingClientRect(),
-          discardEl.getBoundingClientRect(),
-          choreo.staging.card,
-          choreo.staging.faceUp,
-        )
-      } else if (!reduced && localEl && discardEl) {
-        triggerFly(localEl.getBoundingClientRect(), discardEl.getBoundingClientRect(), false)
-        flushQueue()
-      } else {
-        resetChoreo()
-        flushQueue()
-      }
+    }, () => {
+      reconstructStaging(flightCard, privateState?.drawnCardSource ?? choreo.staging.source ?? null)
     })
   }
 
   // ─── Choreography flight completion ────────────
-  const handleChoreoComplete = useCallback(() => {
-    switch (choreo.phase) {
-      case 'flyToStaging':
-        onStagingArrival()
-        break
-      case 'flyToSlot':
-        onSlotArrival()
-        break
-      case 'flySwapToDiscard':
-        onDiscardArrival()
-        break
-      case 'flyToPlayer':
-        onPlayerArrival()
-        break
-      case 'flyToDiscard':
-        resetChoreo()
-        break
-    }
-  }, [choreo.phase, onStagingArrival, onSlotArrival, onDiscardArrival, onPlayerArrival, resetChoreo])
 
   // ─── Power handlers ────────────────────────────
   const handleUsePower = (rankKey: PowerRankKey, effectType: PowerEffectType) => {
@@ -646,7 +649,6 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
     handleSwap,
     handleDiscard,
     handleUsePower,
-    handleChoreoComplete,
     handleSelectionConfirm,
     handleSelectionClick,
     handlePlayerSelect,

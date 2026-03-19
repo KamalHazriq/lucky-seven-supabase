@@ -1,50 +1,66 @@
-import { useState, useCallback, useRef } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import type { Card } from '../lib/types'
+import { useAnimationQueue } from './useAnimationQueue'
 
 /**
- * Choreography phases for card animations.
+ * Choreography phases for queued visual resolution.
  *
- * Discard take flow:
- *   idle → flyToStaging → staging → flyToSlot (+ flySwapToDiscard) → idle
- *
- * Draw pile flow:
- *   idle → flyToPlayer → idle  (no staging for pile draws)
- *
- * Discard flow (action phase):
- *   idle → flyToDiscard → idle
+ * `staging` is the resting visual state for a drawn / taken card.
+ * All `fly*` phases are transient overlay flights driven by the queue.
  */
 export type ChoreographyPhase =
   | 'idle'
-  | 'flyToStaging'     // Card flying from discard pile to staging area
-  | 'staging'          // Card sitting in staging area, waiting for player action
-  | 'flyToSlot'        // Card flying from staging to chosen slot
-  | 'flySwapToDiscard' // Swapped-out card flying from slot to discard
-  | 'flyToPlayer'      // Face-down card flying from pile to local panel
-  | 'flyToDiscard'     // Card flying from player to discard pile
+  | 'staging'
+  | 'flyToStaging'
+  | 'flyToSlot'
+  | 'flySwapToDiscard'
+  | 'flyToPlayer'
+  | 'flyToDiscard'
 
 export interface StagingState {
-  /** The card sitting in the staging area (public for discard takes) */
   card: Card | null
-  /** Source of the staged card */
   source: 'discard' | 'pile' | null
-  /** Whether the staging card is face-up (discard takes = yes, pile draws = no) */
   faceUp: boolean
+  ownerColor?: string
+  pending?: boolean
 }
 
 export interface ChoreographyState {
   phase: ChoreographyPhase
   staging: StagingState
-  /** Flying card animation params for current phase */
   flyFrom: DOMRect | null
   flyTo: DOMRect | null
   flyFaceUp: boolean
   flyCard: Card | null
   flyOwnerColor?: string
+  flyDuration: number
 }
 
-const INITIAL_STAGING: StagingState = { card: null, source: null, faceUp: false }
+interface ServerStageSnapshot {
+  card: Card | null
+  source: 'discard' | 'pile' | null
+  ownerColor?: string
+}
 
-const INITIAL: ChoreographyState = {
+interface FlightRequest {
+  phase: Exclude<ChoreographyPhase, 'idle' | 'staging'>
+  from: DOMRect
+  to: DOMRect
+  faceUp: boolean
+  card: Card | null
+  ownerColor?: string
+  duration: number
+}
+
+const INITIAL_STAGING: StagingState = {
+  card: null,
+  source: null,
+  faceUp: false,
+  ownerColor: undefined,
+  pending: false,
+}
+
+const INITIAL_STATE: ChoreographyState = {
   phase: 'idle',
   staging: INITIAL_STAGING,
   flyFrom: null,
@@ -52,51 +68,212 @@ const INITIAL: ChoreographyState = {
   flyFaceUp: false,
   flyCard: null,
   flyOwnerColor: undefined,
+  flyDuration: 1.0,
 }
 
-/**
- * useChoreography — manages multi-step animation sequences for
- * the card draw/discard/swap flow. Purely visual, no database writes.
- *
- * v1.4.2: Staging area choreography for discard takes.
- */
-export function useChoreography() {
-  const [state, setState] = useState<ChoreographyState>(INITIAL)
-  const pendingRef = useRef<{
-    slotRect?: DOMRect
-    discardRect?: DOMRect
-    swapCard?: Card | null
-    ownerColor?: string
-  }>({})
+const EMPTY_SERVER_STAGE: ServerStageSnapshot = {
+  card: null,
+  source: null,
+  ownerColor: undefined,
+}
 
-  /** Start discard take: fly card from discard pile to staging area */
+function clearFlight(state: ChoreographyState): ChoreographyState {
+  return {
+    ...state,
+    flyFrom: null,
+    flyTo: null,
+    flyFaceUp: false,
+    flyCard: null,
+    flyOwnerColor: undefined,
+    flyDuration: 1.0,
+  }
+}
+
+export function useChoreography() {
+  const [state, setState] = useState<ChoreographyState>(INITIAL_STATE)
+  const stateRef = useRef<ChoreographyState>(INITIAL_STATE)
+  const flightResolverRef = useRef<(() => void) | null>(null)
+  const latestServerStageRef = useRef<ServerStageSnapshot>(EMPTY_SERVER_STAGE)
+  const suppressServerStageRef = useRef(false)
+  const { enqueue, clear: clearQueue } = useAnimationQueue()
+
+  const commit = useCallback((updater: ChoreographyState | ((prev: ChoreographyState) => ChoreographyState)) => {
+    setState((prev) => {
+      const next = typeof updater === 'function'
+        ? (updater as (prev: ChoreographyState) => ChoreographyState)(prev)
+        : updater
+      stateRef.current = next
+      return next
+    })
+  }, [])
+
+  const resolveFlight = useCallback(() => {
+    const resolve = flightResolverRef.current
+    flightResolverRef.current = null
+    resolve?.()
+  }, [])
+
+  const wait = useCallback((ms: number) => new Promise<void>((resolve) => {
+    window.setTimeout(resolve, ms)
+  }), [])
+
+  const playFlight = useCallback((flight: FlightRequest) => new Promise<void>((resolve) => {
+    flightResolverRef.current = () => {
+      flightResolverRef.current = null
+      resolve()
+    }
+
+    commit((prev) => ({
+      ...prev,
+      phase: flight.phase,
+      flyFrom: flight.from,
+      flyTo: flight.to,
+      flyFaceUp: flight.faceUp,
+      flyCard: flight.card,
+      flyOwnerColor: flight.ownerColor,
+      flyDuration: flight.duration,
+    }))
+  }), [commit])
+
+  const rebuildStageFromLatest = useCallback((fallback: StagingState) => {
+    const latest = latestServerStageRef.current
+
+    if (latest.source === fallback.source) {
+      return {
+        card: latest.card ?? fallback.card,
+        source: latest.source,
+        faceUp: !!latest.card,
+        ownerColor: latest.ownerColor ?? fallback.ownerColor,
+        pending: !latest.card,
+      } satisfies StagingState
+    }
+
+    return fallback
+  }, [])
+
+  const reconstructStaging = useCallback((
+    card: Card | null,
+    source: 'pile' | 'discard' | null,
+    ownerColor?: string,
+  ) => {
+    latestServerStageRef.current = { card, source, ownerColor }
+
+    if (!source) {
+      suppressServerStageRef.current = false
+      commit((prev) => {
+        const cleared = clearFlight({
+          ...prev,
+          staging: INITIAL_STAGING,
+        })
+        return prev.phase === 'staging'
+          ? { ...cleared, phase: 'idle' }
+          : cleared
+      })
+      return
+    }
+
+    if (suppressServerStageRef.current) return
+
+    commit((prev) => {
+      if (prev.phase !== 'idle' && prev.phase !== 'staging') {
+        return prev
+      }
+
+      return {
+        ...clearFlight(prev),
+        phase: 'staging',
+        staging: {
+          card,
+          source,
+          faceUp: !!card,
+          ownerColor: ownerColor ?? prev.staging.ownerColor,
+          pending: !card,
+        },
+      }
+    })
+  }, [commit])
+
   const startDiscardTake = useCallback((
     discardCard: Card,
     fromRect: DOMRect,
     stagingRect: DOMRect,
+    ownerColor?: string,
   ) => {
-    setState({
-      phase: 'flyToStaging',
-      staging: { card: discardCard, source: 'discard', faceUp: true },
-      flyFrom: fromRect,
-      flyTo: stagingRect,
-      flyFaceUp: true,
-      flyCard: discardCard,
-      flyOwnerColor: undefined,
+    suppressServerStageRef.current = false
+
+    void enqueue(async (isCurrent) => {
+      commit((prev) => ({
+        ...clearFlight(prev),
+        phase: 'flyToStaging',
+        staging: INITIAL_STAGING,
+      }))
+
+      await playFlight({
+        phase: 'flyToStaging',
+        from: fromRect,
+        to: stagingRect,
+        faceUp: true,
+        card: discardCard,
+        ownerColor,
+        duration: 1.05,
+      })
+
+      if (!isCurrent()) return
+
+      commit((prev) => ({
+        ...clearFlight(prev),
+        phase: 'staging',
+        staging: rebuildStageFromLatest({
+          card: discardCard,
+          source: 'discard',
+          faceUp: true,
+          ownerColor,
+          pending: false,
+        }),
+      }))
     })
-  }, [])
+  }, [commit, enqueue, playFlight, rebuildStageFromLatest])
 
-  /** When flyToStaging completes, enter staging phase */
-  const onStagingArrival = useCallback(() => {
-    setState((prev) => ({
-      ...prev,
-      phase: 'staging',
-      flyFrom: null,
-      flyTo: null,
-    }))
-  }, [])
+  const startPileDraw = useCallback((
+    fromRect: DOMRect,
+    stagingRect: DOMRect,
+    ownerColor?: string,
+  ) => {
+    suppressServerStageRef.current = false
 
-  /** Start swap from staging: fly card from staging to slot */
+    void enqueue(async (isCurrent) => {
+      commit((prev) => ({
+        ...clearFlight(prev),
+        phase: 'flyToPlayer',
+        staging: INITIAL_STAGING,
+      }))
+
+      await playFlight({
+        phase: 'flyToPlayer',
+        from: fromRect,
+        to: stagingRect,
+        faceUp: false,
+        card: null,
+        ownerColor,
+        duration: 1.0,
+      })
+
+      if (!isCurrent()) return
+
+      commit((prev) => ({
+        ...clearFlight(prev),
+        phase: 'staging',
+        staging: rebuildStageFromLatest({
+          card: null,
+          source: 'pile',
+          faceUp: false,
+          ownerColor,
+          pending: true,
+        }),
+      }))
+    })
+  }, [commit, enqueue, playFlight, rebuildStageFromLatest])
+
   const startSwapFromStaging = useCallback((
     stagingRect: DOMRect,
     slotRect: DOMRect,
@@ -104,137 +281,111 @@ export function useChoreography() {
     swapCard: Card | null,
     ownerColor?: string,
   ) => {
-    // Store pending data for the second animation (swap card → discard)
-    pendingRef.current = { slotRect, discardRect, swapCard, ownerColor }
-    setState((prev) => ({
-      ...prev,
-      phase: 'flyToSlot',
-      flyFrom: stagingRect,
-      flyTo: slotRect,
-      flyFaceUp: prev.staging.faceUp,
-      flyCard: prev.staging.card,
-    }))
-  }, [])
+    suppressServerStageRef.current = true
 
-  /** When flyToSlot completes, start the swap card flying to discard */
-  const onSlotArrival = useCallback(() => {
-    const { slotRect, discardRect, swapCard } = pendingRef.current
-    if (slotRect && discardRect) {
-      setState((prev) => ({
-        ...prev,
-        phase: 'flySwapToDiscard',
+    void enqueue(async (isCurrent) => {
+      const staged = stateRef.current.staging
+      const stageOwnerColor = staged.ownerColor ?? ownerColor
+
+      commit((prev) => ({
+        ...clearFlight(prev),
+        phase: 'flyToSlot',
         staging: INITIAL_STAGING,
-        flyFrom: slotRect,
-        flyTo: discardRect,
-        flyFaceUp: true,
-        flyCard: swapCard ?? null,
-        flyOwnerColor: undefined,
       }))
-      pendingRef.current = {}
-    } else {
-      // No swap card to animate — done
-      setState(INITIAL)
-      pendingRef.current = {}
-    }
-  }, [])
 
-  /** When swap card arrives at discard, complete the choreography */
-  const onDiscardArrival = useCallback(() => {
-    setState(INITIAL)
-  }, [])
+      await playFlight({
+        phase: 'flyToSlot',
+        from: stagingRect,
+        to: slotRect,
+        faceUp: staged.faceUp,
+        card: staged.card,
+        ownerColor: stageOwnerColor,
+        duration: 0.95,
+      })
 
-  /** Start discard action: fly card from staging/player to discard */
+      if (!isCurrent()) return
+
+      await wait(40)
+      if (!isCurrent()) return
+
+      await playFlight({
+        phase: 'flySwapToDiscard',
+        from: slotRect,
+        to: discardRect,
+        faceUp: !!swapCard,
+        card: swapCard,
+        ownerColor: stageOwnerColor,
+        duration: 0.85,
+      })
+
+      if (!isCurrent()) return
+
+      commit((prev) => ({
+        ...clearFlight(prev),
+        phase: 'idle',
+        staging: INITIAL_STAGING,
+      }))
+    })
+  }, [commit, enqueue, playFlight, wait])
+
   const startDiscardAction = useCallback((
     fromRect: DOMRect,
     toRect: DOMRect,
     card: Card | null,
     faceUp: boolean,
-  ) => {
-    setState({
-      phase: 'flyToDiscard',
-      staging: INITIAL_STAGING,
-      flyFrom: fromRect,
-      flyTo: toRect,
-      flyFaceUp: faceUp,
-      flyCard: card,
-      flyOwnerColor: undefined,
-    })
-  }, [])
-
-  /** Start pile draw: fly face-down card from pile to player panel */
-  const startPileDraw = useCallback((
-    fromRect: DOMRect,
-    toRect: DOMRect,
     ownerColor?: string,
   ) => {
-    setState({
-      phase: 'flyToPlayer',
-      staging: INITIAL_STAGING,
-      flyFrom: fromRect,
-      flyTo: toRect,
-      flyFaceUp: false,
-      flyCard: null,
-      flyOwnerColor: ownerColor,
-    })
-  }, [])
+    suppressServerStageRef.current = true
 
-  /** When flyToPlayer (pile draw → staging) completes, enter staging phase */
-  const onPlayerArrival = useCallback(() => {
-    setState({
-      phase: 'staging',
-      staging: { card: null, source: 'pile', faceUp: false },
-      flyFrom: null,
-      flyTo: null,
-      flyFaceUp: false,
-      flyCard: null,
-      flyOwnerColor: undefined,
-    })
-  }, [])
+    void enqueue(async (isCurrent) => {
+      const stageOwnerColor = stateRef.current.staging.ownerColor ?? ownerColor
 
-  /** Reconstruct staging from server state on resume/refresh (Section 6) */
-  const reconstructStaging = useCallback((
-    drawnCard: Card | null,
-    source: 'pile' | 'discard' | null,
-  ) => {
-    if (!source) {
-      setState(INITIAL)
-      return
-    }
-    // Always show drawn card face-up in staging for the local player.
-    // If drawnCard is null (server hasn't delivered yet), show face-down placeholder
-    // which will be corrected when the listener fires.
-    setState({
-      phase: 'staging',
-      staging: {
-        card: drawnCard ?? null,
-        source,
-        faceUp: !!drawnCard,
-      },
-      flyFrom: null,
-      flyTo: null,
-      flyFaceUp: false,
-      flyCard: null,
-      flyOwnerColor: undefined,
-    })
-  }, [])
+      commit((prev) => ({
+        ...clearFlight(prev),
+        phase: 'flyToDiscard',
+        staging: INITIAL_STAGING,
+      }))
 
-  /** Reset everything */
+      await playFlight({
+        phase: 'flyToDiscard',
+        from: fromRect,
+        to: toRect,
+        faceUp,
+        card,
+        ownerColor: stageOwnerColor,
+        duration: 0.88,
+      })
+
+      if (!isCurrent()) return
+
+      commit((prev) => ({
+        ...clearFlight(prev),
+        phase: 'idle',
+        staging: INITIAL_STAGING,
+      }))
+    })
+  }, [commit, enqueue, playFlight])
+
   const reset = useCallback(() => {
-    setState(INITIAL)
-    pendingRef.current = {}
-  }, [])
+    suppressServerStageRef.current = false
+    latestServerStageRef.current = EMPTY_SERVER_STAGE
+    clearQueue()
+    resolveFlight()
+    commit(INITIAL_STATE)
+  }, [clearQueue, commit, resolveFlight])
+
+  const completeFlight = useCallback(() => {
+    resolveFlight()
+  }, [resolveFlight])
 
   return {
     choreo: state,
     startDiscardTake,
-    onStagingArrival,
     startSwapFromStaging,
-    onSlotArrival,
-    onDiscardArrival,
     startDiscardAction,
     startPileDraw,
-    onPlayerArrival,
     reconstructStaging,
+    completeFlight,
     reset,
   }
 }

@@ -125,8 +125,8 @@ export default function FlyingCard({
     ? '#ffffff'
     : ownerColor ?? '#7dd3fc'
   const signalGlow = faceUp
-    ? 'rgba(255,255,255,0.22)'
-    : hexToRgba(signalColor, 0.22)
+    ? 'rgba(255,255,255,0.16)'
+    : hexToRgba(signalColor, 0.16)
 
   // Flip on land: card starts showing back, flips to face at ~80% of flight
   void flipOnLand // Reserved for future use
@@ -183,7 +183,7 @@ export default function FlyingCard({
           className="pointer-events-none absolute inset-0 rounded-xl"
           animate={reduced
             ? { opacity: [0.08, 0.16] }
-            : { opacity: [0.06, 0.18, 0.08, 0], scale: [0.96, 1.04, 1.01, 1] }
+            : { opacity: [0.04, 0.14, 0.06, 0], scale: [0.97, 1.03, 1.01, 1] }
           }
           transition={reduced
             ? { duration: reducedDuration, ease: 'easeOut' }
@@ -199,12 +199,12 @@ export default function FlyingCard({
         {!faceUp && !reduced && (
           <motion.div
             initial={{ opacity: 0, x: '-120%' }}
-            animate={{ opacity: [0, 0.6, 0], x: ['-120%', '140%'] }}
+            animate={{ opacity: [0, 0.45, 0], x: ['-120%', '140%'] }}
             transition={{ duration: Math.max(duration * 0.72, 0.72), times: [0, 0.28, 1], ease: [0.22, 0.9, 0.36, 1] }}
             className="pointer-events-none absolute inset-y-[-20%] left-[-42%] w-[54%] rotate-[14deg]"
             style={{
               zIndex: 2,
-              background: 'linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.04) 28%, rgba(255,255,255,0.22) 49%, rgba(250,204,21,0.16) 58%, transparent 84%)',
+              background: 'linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.03) 28%, rgba(255,255,255,0.16) 49%, rgba(250,204,21,0.1) 58%, transparent 84%)',
               mixBlendMode: 'screen',
             }}
           />

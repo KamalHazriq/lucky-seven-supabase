@@ -274,6 +274,94 @@ body {
   animation: shimmer 7s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
 }
 
+@keyframes l7-card-glint {
+  0% {
+    transform: translateX(0) rotate(14deg);
+    opacity: 0;
+  }
+  18% {
+    opacity: 0.18;
+  }
+  52% {
+    opacity: 0.38;
+  }
+  100% {
+    transform: translateX(260%) rotate(14deg);
+    opacity: 0;
+  }
+}
+
+@keyframes l7-stack-glint {
+  0% {
+    transform: translateX(0) rotate(12deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.2;
+  }
+  55% {
+    opacity: 0.42;
+  }
+  100% {
+    transform: translateX(280%) rotate(12deg);
+    opacity: 0;
+  }
+}
+
+.l7-cardback-shell {
+  --l7-cardback-accent: #7dd3fc;
+  --l7-cardback-accent-soft: rgba(125, 211, 252, 0.14);
+  position: relative;
+  isolation: isolate;
+}
+
+.l7-cardback-shell::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 22%, transparent 78%, rgba(250,204,21,0.08) 100%),
+    radial-gradient(circle at 50% 18%, var(--l7-cardback-accent-soft) 0%, transparent 44%),
+    radial-gradient(circle at 50% 82%, rgba(250,204,21,0.07) 0%, transparent 36%);
+  opacity: 0.82;
+}
+
+.l7-cardback-shell::after {
+  content: '';
+  position: absolute;
+  top: -24%;
+  bottom: -24%;
+  left: -68%;
+  width: 56%;
+  border-radius: 9999px;
+  pointer-events: none;
+  background: linear-gradient(
+    120deg,
+    transparent 0%,
+    rgba(255,255,255,0.03) 28%,
+    rgba(255,255,255,0.16) 49%,
+    rgba(250,204,21,0.14) 57%,
+    transparent 84%
+  );
+  mix-blend-mode: screen;
+  opacity: 0;
+  transform: translateX(0) rotate(14deg);
+}
+
+.l7-cardback-shell-interactive {
+  transition: filter 0.2s ease;
+}
+
+.l7-cardback-shell-interactive:hover {
+  filter: saturate(1.08);
+}
+
+.l7-cardback-shell-interactive:hover::after {
+  animation: l7-card-glint 0.95s cubic-bezier(0.22, 0.9, 0.36, 1) 1;
+}
+
 /* ─── Face-up card suit colors (high contrast) ────────────── */
 .card-suit-red { color: #dc2626; }
 .card-suit-black { color: #1e293b; }
@@ -300,6 +388,7 @@ body {
 /* ─── Draw pile stack effect — layered cards underneath ───── */
 .pile-stack {
   position: relative;
+  overflow: visible;
 }
 .pile-stack::before,
 .pile-stack::after {
@@ -307,16 +396,60 @@ body {
   position: absolute;
   inset: 0;
   border-radius: 0.75rem;
-  background: linear-gradient(135deg, rgba(30,58,95,0.6) 0%, rgba(30,58,95,0.8) 100%);
-  border: 1px solid rgba(96,165,250,0.12);
+  background:
+    radial-gradient(circle at 50% 18%, rgba(125,211,252,0.08) 0%, transparent 45%),
+    linear-gradient(155deg, rgba(7,16,31,0.72) 0%, rgba(15,24,48,0.84) 54%, rgba(5,9,20,0.9) 100%);
+  border: 1px solid rgba(125,211,252,0.12);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 10px 22px rgba(0,0,0,0.12);
   pointer-events: none;
 }
 .pile-stack::before {
   transform: translate(3px, 3px) rotate(1.5deg);
-  opacity: 0.5;
+  opacity: 0.48;
 }
 .pile-stack::after {
   transform: translate(1.5px, 1.5px) rotate(0.7deg);
+  opacity: 0.68;
+}
+
+.l7-stack-sheen {
+  position: absolute;
+  inset: -10px -6px;
+  border-radius: 1rem;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.l7-stack-sheen::before {
+  content: '';
+  position: absolute;
+  top: -30%;
+  bottom: -30%;
+  left: -74%;
+  width: 64%;
+  border-radius: 9999px;
+  background: linear-gradient(
+    120deg,
+    transparent 0%,
+    rgba(255,255,255,0.02) 26%,
+    rgba(255,255,255,0.18) 48%,
+    rgba(250,204,21,0.14) 56%,
+    transparent 84%
+  );
+  mix-blend-mode: screen;
+  opacity: 0;
+  animation: l7-stack-glint 6.2s cubic-bezier(0.22, 0.9, 0.36, 1) infinite;
+}
+
+.l7-stack-sheen::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    radial-gradient(circle at 50% 12%, rgba(125,211,252,0.16) 0%, transparent 32%),
+    linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 28%, transparent 74%, rgba(250,204,21,0.06) 100%);
   opacity: 0.7;
 }
 
@@ -707,6 +840,8 @@ input[type="range"].vol-slider::-moz-range-thumb {
 /* Respect prefers-reduced-motion at CSS level */
 @media (prefers-reduced-motion: reduce) {
   .card-shimmer { animation: none; }
+  .l7-cardback-shell-interactive:hover::after { animation: none; }
+  .l7-stack-sheen::before { animation: none; }
   .animate-pulse { animation: none; }
   .action-pulse-ring { animation: none; }
   .turn-glow { animation: none; }
@@ -729,6 +864,7 @@ input[type="range"].vol-slider::-moz-range-thumb {
 
 /* Pause all CSS animations when the tab is hidden (set by visibilitychange listener in main.tsx) */
 html[data-page-hidden] .card-shimmer,
+html[data-page-hidden] .l7-stack-sheen::before,
 html[data-page-hidden] .animate-pulse,
 html[data-page-hidden] .action-pulse-ring,
 html[data-page-hidden] .turn-glow,

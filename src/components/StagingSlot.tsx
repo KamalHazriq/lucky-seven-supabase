@@ -1,4 +1,4 @@
-import { forwardRef, memo, useRef, useEffect, useCallback } from 'react'
+import { forwardRef, memo, useRef, useEffect, useCallback, useState } from 'react'
 import { motion, AnimatePresence, useAnimate, type PanInfo } from 'framer-motion'
 import CardView from './CardView'
 import type { Card } from '../lib/types'
@@ -44,7 +44,10 @@ const StagingSlot = memo(forwardRef<HTMLDivElement, StagingSlotProps>(
     onDragCancel,
   }, ref) {
     const [scope, animate] = useAnimate()
+    const [showRevealBeat, setShowRevealBeat] = useState(false)
+    const [revealBeatKey, setRevealBeatKey] = useState(0)
     const prevActive = useRef(active)
+    const prevVisualRef = useRef({ active, faceUp })
     const perfMode = usePerformanceMode()
 
     const emitDragPoint = useCallback((handler?: (point: StagingDragPoint) => void, info?: PanInfo) => {
@@ -63,6 +66,25 @@ const StagingSlot = memo(forwardRef<HTMLDivElement, StagingSlotProps>(
       prevActive.current = active
     }, [active, animate, card, faceUp, scope])
 
+    useEffect(() => {
+      const prev = prevVisualRef.current
+      let frameId: number | null = null
+      if (active && prev.active && faceUp && !prev.faceUp) {
+        frameId = requestAnimationFrame(() => {
+          setRevealBeatKey((current) => current + 1)
+          setShowRevealBeat(true)
+        })
+      } else if (!active || !faceUp) {
+        frameId = requestAnimationFrame(() => {
+          setShowRevealBeat(false)
+        })
+      }
+      prevVisualRef.current = { active, faceUp }
+      return () => {
+        if (frameId != null) cancelAnimationFrame(frameId)
+      }
+    }, [active, faceUp])
+
     const statusHint = dropHint ?? (pending ? 'Waiting for reveal...' : interactive ? 'Drag to a slot or discard' : null)
 
     return (
@@ -77,9 +99,37 @@ const StagingSlot = memo(forwardRef<HTMLDivElement, StagingSlotProps>(
 
         <AnimatePresence mode="wait">
           {active ? (
-            <div style={perfMode ? undefined : {
-              filter: 'drop-shadow(0 8px 20px rgba(0,0,0,0.35)) drop-shadow(0 3px 8px rgba(0,0,0,0.2)) drop-shadow(0 0 12px rgba(251,191,36,0.12))',
-            }}>
+            <div
+              className="relative"
+              style={perfMode ? undefined : {
+                filter: 'drop-shadow(0 8px 20px rgba(0,0,0,0.35)) drop-shadow(0 3px 8px rgba(0,0,0,0.2)) drop-shadow(0 0 12px rgba(251,191,36,0.12))',
+              }}
+            >
+              {showRevealBeat && !perfMode && (
+                <motion.div
+                  key={`staging-reveal-${revealBeatKey}`}
+                  initial={{ opacity: 0, scale: 0.76 }}
+                  animate={{ opacity: [0, 0.9, 0], scale: [0.76, 1.04, 1.28] }}
+                  transition={{ duration: 0.62, times: [0, 0.42, 1], ease: 'easeOut' }}
+                  onAnimationComplete={() => setShowRevealBeat(false)}
+                  className="pointer-events-none absolute inset-[-10px] rounded-[18px]"
+                  style={{
+                    background: 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.82) 0%, rgba(125,211,252,0.24) 20%, rgba(250,204,21,0.15) 38%, transparent 72%)',
+                    mixBlendMode: 'screen',
+                  }}
+                >
+                  <motion.div
+                    initial={{ opacity: 0, x: '-120%' }}
+                    animate={{ opacity: [0, 0.6, 0], x: ['-120%', '140%'] }}
+                    transition={{ duration: 0.56, times: [0, 0.28, 1], ease: [0.22, 0.9, 0.36, 1] }}
+                    className="absolute inset-y-[-16%] left-[-36%] w-[50%] rotate-[14deg]"
+                    style={{
+                      background: 'linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.05) 26%, rgba(255,255,255,0.36) 49%, rgba(250,204,21,0.2) 58%, transparent 84%)',
+                    }}
+                  />
+                </motion.div>
+              )}
+
               <motion.div
                 key={`staged-${faceUp ? 'up' : 'down'}`}
                 ref={scope}
@@ -89,8 +139,8 @@ const StagingSlot = memo(forwardRef<HTMLDivElement, StagingSlotProps>(
                   : { opacity: 1, scale: 1, y: [0, -5, 0] }
                 }
                 exit={{ opacity: 0, scale: 0.85, y: -10 }}
-                whileHover={interactive ? { scale: 1.04, y: -6 } : undefined}
-                whileDrag={interactive ? { scale: 1.08, y: -10, rotate: 2, zIndex: 20 } : undefined}
+                whileHover={interactive ? { scale: 1.045, y: -7, rotate: -1.2 } : undefined}
+                whileDrag={interactive ? { scale: 1.085, y: -11, rotate: 2.5, zIndex: 20 } : undefined}
                 drag={interactive}
                 dragMomentum={false}
                 dragElastic={0.08}

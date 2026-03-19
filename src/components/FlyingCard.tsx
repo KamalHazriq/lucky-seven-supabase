@@ -1,10 +1,10 @@
 import { useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { motion } from 'motion/react'
+import LuckySevenCardBack from './LuckySevenCardBack'
 import { cardDisplay, suitColor } from '../lib/deck'
 import type { Card } from '../lib/types'
 
-/** Convert hex/rgba color string to rgba with custom alpha */
 function hexToRgba(color: string, alpha: number): string {
   const rgbaMatch = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/)
   if (rgbaMatch) {
@@ -121,6 +121,12 @@ export default function FlyingCard({
       ]
 
   const reducedDuration = 0.25
+  const signalColor = faceUp
+    ? '#ffffff'
+    : ownerColor ?? '#7dd3fc'
+  const signalGlow = faceUp
+    ? 'rgba(255,255,255,0.22)'
+    : hexToRgba(signalColor, 0.22)
 
   // Flip on land: card starts showing back, flips to face at ~80% of flight
   void flipOnLand // Reserved for future use
@@ -163,37 +169,57 @@ export default function FlyingCard({
       }}
     >
       <div
-        className={`w-full h-full rounded-xl shadow-lg flex items-center justify-center ${
+        className={`relative w-full h-full rounded-xl shadow-lg flex items-center justify-center ${
           faceUp && card
             ? 'bg-white border border-slate-200'
-            : ownerColor
-              ? 'border border-white/15'
-              : 'bg-gradient-to-br from-blue-900 via-blue-800 to-blue-950 border border-blue-700/50'
+            : 'bg-slate-950 border border-white/10 overflow-hidden'
         }`}
-        style={{
-          ...(!faceUp && ownerColor ? {
-            background: `linear-gradient(145deg, ${hexToRgba(ownerColor, 0.8)} 0%, ${hexToRgba(ownerColor, 0.55)} 40%, ${hexToRgba(ownerColor, 0.65)} 100%)`,
-          } : {}),
-        }}
+        style={!faceUp && ownerColor ? {
+          '--l7-cardback-accent': ownerColor,
+          '--l7-cardback-accent-soft': hexToRgba(ownerColor, 0.18),
+        } as React.CSSProperties : undefined}
       >
+        <motion.div
+          className="pointer-events-none absolute inset-0 rounded-xl"
+          animate={reduced
+            ? { opacity: [0.08, 0.16] }
+            : { opacity: [0.06, 0.18, 0.08, 0], scale: [0.96, 1.04, 1.01, 1] }
+          }
+          transition={reduced
+            ? { duration: reducedDuration, ease: 'easeOut' }
+            : { duration, times: [0, 0.24, 0.78, 1], ease: 'easeInOut' }
+          }
+          style={{
+            zIndex: 1,
+            background: `radial-gradient(circle at 50% 50%, ${signalGlow} 0%, transparent 68%)`,
+            mixBlendMode: 'screen',
+          }}
+        />
+
+        {!faceUp && !reduced && (
+          <motion.div
+            initial={{ opacity: 0, x: '-120%' }}
+            animate={{ opacity: [0, 0.6, 0], x: ['-120%', '140%'] }}
+            transition={{ duration: Math.max(duration * 0.72, 0.72), times: [0, 0.28, 1], ease: [0.22, 0.9, 0.36, 1] }}
+            className="pointer-events-none absolute inset-y-[-20%] left-[-42%] w-[54%] rotate-[14deg]"
+            style={{
+              zIndex: 2,
+              background: 'linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.04) 28%, rgba(255,255,255,0.22) 49%, rgba(250,204,21,0.16) 58%, transparent 84%)',
+              mixBlendMode: 'screen',
+            }}
+          />
+        )}
+
         {faceUp && card ? (
           <span
-            className={`font-bold ${size === 'md' ? 'text-sm' : 'text-xs'}`}
+            className={`relative z-10 font-bold ${size === 'md' ? 'text-sm' : 'text-xs'}`}
             style={{ color: suitColor(card) }}
           >
             {cardDisplay(card)}
           </span>
         ) : (
-          <div
-            className={`${size === 'md' ? 'w-8 h-8' : 'w-6 h-6'} rounded-full border-2 flex items-center justify-center`}
-            style={{ borderColor: ownerColor ? 'rgba(255,255,255,0.35)' : 'rgba(96,165,250,0.3)' }}
-          >
-            <span
-              className={`font-bold ${size === 'md' ? 'text-base' : 'text-sm'}`}
-              style={{ color: ownerColor ? 'rgba(255,255,255,0.6)' : 'rgba(96,165,250,0.5)' }}
-            >
-              7
-            </span>
+          <div className="absolute inset-0 z-0 rounded-xl overflow-hidden l7-cardback-shell">
+            <LuckySevenCardBack accentColor={ownerColor} className="h-full w-full" />
           </div>
         )}
       </div>

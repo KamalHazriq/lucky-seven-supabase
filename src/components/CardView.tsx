@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect, useMemo, memo } from 'react'
 import { usePerformanceMode } from '../hooks/usePerformanceMode'
 import { motion, type Transition } from 'framer-motion'
+import LuckySevenCardBack from './LuckySevenCardBack'
 
 /** Shared spring configs for premium buttery-smooth motion */
 const SPRING_HOVER: Transition = { type: 'spring', stiffness: 350, damping: 22, mass: 0.6 }
@@ -66,15 +67,19 @@ function CardView({
   const showFace = faceUp && card
   const perfMode = usePerformanceMode()
   const [showTooltip, setShowTooltip] = useState(false)
+  const [showRevealFlash, setShowRevealFlash] = useState(false)
+  const [revealFlashKey, setRevealFlashKey] = useState(0)
   const lockerName = lockInfo?.lockerName
+  const prevShowFaceRef = useRef(!!showFace)
+  const mountedRef = useRef(false)
 
-  const ownerColorStyle = useMemo(() => {
-    if (!ownerColor) return null
+  const faceDownFrameStyle = useMemo(() => {
+    if (showFace || !ownerColor) return null
     return {
-      background: `linear-gradient(145deg, ${hexToRgba(ownerColor, 0.85)} 0%, ${hexToRgba(ownerColor, 0.5)} 35%, ${hexToRgba(ownerColor, 0.6)} 70%, ${hexToRgba(ownerColor, 0.75)} 100%)`,
-      boxShadow: `inset 0 1px 0 ${hexToRgba('#ffffff', 0.06)}, 0 4px 12px ${hexToRgba(ownerColor, 0.25)}`,
+      borderColor: hexToRgba(ownerColor, 0.26),
+      boxShadow: `0 10px 24px ${hexToRgba(ownerColor, 0.18)}, 0 4px 14px rgba(0,0,0,0.28), inset 0 1px 0 ${hexToRgba('#ffffff', 0.05)}`,
     }
-  }, [ownerColor])
+  }, [ownerColor, showFace])
   const longPressRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const tooltipRef = useRef<HTMLDivElement>(null)
 
@@ -97,6 +102,29 @@ function CardView({
     document.addEventListener('touchstart', handler, { passive: true })
     return () => document.removeEventListener('touchstart', handler)
   }, [showTooltip])
+
+  useEffect(() => {
+    const wasShowingFace = prevShowFaceRef.current
+    const isShowingFace = !!showFace
+    let frameId: number | null = null
+
+    if (mountedRef.current && isShowingFace && !wasShowingFace) {
+      frameId = requestAnimationFrame(() => {
+        setRevealFlashKey((prev) => prev + 1)
+        setShowRevealFlash(true)
+      })
+    } else if (!isShowingFace) {
+      frameId = requestAnimationFrame(() => {
+        setShowRevealFlash(false)
+      })
+    }
+
+    prevShowFaceRef.current = isShowingFace
+    mountedRef.current = true
+    return () => {
+      if (frameId != null) cancelAnimationFrame(frameId)
+    }
+  }, [showFace])
 
   // ─── Font sizes per card size ───
   const suitFontSize = size === 'lg' ? '1.8rem' : size === 'md' ? '1.5rem' : '1.1rem'
@@ -122,14 +150,12 @@ function CardView({
         ${highlight ? 'ring-2 ring-gold ring-offset-2 ring-offset-transparent shadow-gold/30 shadow-xl' : ''}
         ${showFace
           ? 'bg-white border border-slate-200/80 shadow-lg'
-          : ownerColor
-            ? 'border border-white/[0.08] hover:border-white/25 transition-[border-color] duration-200 shadow-md hover:shadow-lg'
-            : 'bg-gradient-to-br from-blue-900 via-blue-800 to-blue-950 border border-blue-700/50 shadow-md'
+          : 'bg-slate-950 border border-white/[0.08] transition-[border-color] duration-200 shadow-md'
         }
       `}
       style={{
         perspective: '600px',
-        ...(!showFace && ownerColorStyle ? ownerColorStyle : {}),
+        ...(!showFace && faceDownFrameStyle ? faceDownFrameStyle : {}),
       }}
     >
       {showFace ? (
@@ -246,28 +272,50 @@ function CardView({
       ) : (
         /* ─── Face-down card back ─── */
         <div
-          className={perfMode ? 'absolute inset-0 rounded-xl' : 'card-shimmer absolute inset-0 rounded-xl'}
-          style={ownerColor && !perfMode ? {
-            '--shimmer-color': ownerColor,
+          className={`absolute inset-0 rounded-xl overflow-hidden l7-cardback-shell${onClick && !disabled ? ' l7-cardback-shell-interactive' : ''}`}
+          style={ownerColor ? {
+            '--l7-cardback-accent': ownerColor,
+            '--l7-cardback-accent-soft': hexToRgba(ownerColor, 0.18),
           } as React.CSSProperties : undefined}
         >
-          <div className="flex items-center justify-center h-full">
+          <LuckySevenCardBack accentColor={ownerColor} className="h-full w-full" />
+          {!perfMode && (
             <div
-              className="w-7 h-7 rounded-full border flex items-center justify-center"
+              className="card-shimmer pointer-events-none absolute inset-0 opacity-55 mix-blend-screen"
               style={{
-                borderColor: ownerColor ? 'rgba(255,255,255,0.15)' : 'rgba(96,165,250,0.20)',
-                background: ownerColor ? 'rgba(255,255,255,0.04)' : 'rgba(96,165,250,0.06)',
-              }}
-            >
-              <span
-                className="font-bold text-base"
-                style={{ color: ownerColor ? 'rgba(255,255,255,0.4)' : 'rgba(96,165,250,0.40)' }}
-              >
-                7
-              </span>
-            </div>
-          </div>
+                '--shimmer-color': ownerColor
+                  ? hexToRgba(ownerColor, 0.14)
+                  : 'rgba(125, 211, 252, 0.1)',
+              } as React.CSSProperties}
+            />
+          )}
         </div>
+      )}
+
+      {showRevealFlash && showFace && !perfMode && (
+        <motion.div
+          key={`reveal-${revealFlashKey}`}
+          initial={{ opacity: 0, scale: 0.82 }}
+          animate={{ opacity: [0, 0.95, 0], scale: [0.82, 1.03, 1.24] }}
+          transition={{ duration: 0.55, times: [0, 0.42, 1], ease: 'easeOut' }}
+          onAnimationComplete={() => setShowRevealFlash(false)}
+          className="pointer-events-none absolute inset-0 rounded-xl overflow-hidden"
+          style={{
+            zIndex: 6,
+            background: 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.85) 0%, rgba(125,211,252,0.24) 18%, rgba(250,204,21,0.14) 34%, transparent 68%)',
+            mixBlendMode: 'screen',
+          }}
+        >
+          <motion.div
+            initial={{ opacity: 0, x: '-120%' }}
+            animate={{ opacity: [0, 0.65, 0], x: ['-120%', '120%'] }}
+            transition={{ duration: 0.48, times: [0, 0.28, 1], ease: [0.22, 0.9, 0.36, 1] }}
+            className="absolute inset-y-[-16%] left-[-40%] w-[52%] rotate-[14deg]"
+            style={{
+              background: 'linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.06) 26%, rgba(255,255,255,0.4) 48%, rgba(250,204,21,0.22) 58%, transparent 84%)',
+            }}
+          />
+        </motion.div>
       )}
 
       {/* King lock overlay — visible on locked cards */}

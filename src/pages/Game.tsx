@@ -674,6 +674,7 @@ export default function Game() {
                   <div className={`text-center${canDraw ? ' pile-interactive' : ''}`} ref={drawPileRef}>
                     <p className="text-[10px] text-muted-foreground mb-1">Draw</p>
                     <div className="pile-stack">
+                    <span className="l7-stack-sheen" aria-hidden="true" />
                     <CardView
                       faceUp={false}
                       size="md"
@@ -889,6 +890,7 @@ export default function Game() {
               <div className={`text-center${canDraw ? ' pile-interactive' : ''}`} ref={drawPileRef}>
                 <p className="text-xs text-muted-foreground mb-2">Draw Pile</p>
                 <div className="pile-stack">
+                <span className="l7-stack-sheen" aria-hidden="true" />
                 <CardView
                   faceUp={false}
                   size="lg"

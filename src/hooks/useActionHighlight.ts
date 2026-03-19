@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import type { LogEntry, PlayerDoc } from '../lib/types'
-import { getSeatColor } from '../lib/playerColors'
+import { getPlayerColor } from '../lib/playerColors'
 import { parseGameAction } from '../lib/gameActionEvents'
 
 export interface ActionHighlightInfo {
@@ -32,7 +32,7 @@ export function useActionHighlight(
     const event = parseGameAction(log[log.length - 1], players)
     if (!event || !('actor' in event)) return
 
-    const color = getSeatColor(event.actor.seatIndex)
+    const color = getPlayerColor(event.actor.seatIndex, event.actor.colorKey)
     const highlightColor = color.solid
 
     let label = 'acted'

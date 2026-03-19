@@ -1,7 +1,7 @@
 import { memo } from 'react'
 import { motion } from 'framer-motion'
 import type { PlayerDoc } from '../lib/types'
-import { getSeatColor } from '../lib/playerColors'
+import { getPlayerColor } from '../lib/playerColors'
 
 interface TurnQueueProps {
   playerOrder: string[]
@@ -39,7 +39,7 @@ function TurnQueue({
         {queue.map(({ pid, queueNum }, i) => {
           const pd = players[pid]
           if (!pd) return null
-          const color = getSeatColor(pd.seatIndex)
+          const color = getPlayerColor(pd.seatIndex, pd.colorKey)
           const isCurrent = queueNum === 1
           const isLocal = pid === localPlayerId
           const name = pd.displayName.length > 8
@@ -95,7 +95,7 @@ function TurnQueue({
       {queue.map(({ pid, queueNum }, i) => {
         const pd = players[pid]
         if (!pd) return null
-        const color = getSeatColor(pd.seatIndex)
+        const color = getPlayerColor(pd.seatIndex, pd.colorKey)
         const isCurrent = queueNum === 1
         const isLocal = pid === localPlayerId
         const name = pd.displayName.length > 10

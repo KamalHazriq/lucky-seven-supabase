@@ -170,14 +170,28 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
   const [modal, setModal] = useState<ModalState>({ type: 'none' })
   const [peekReveal, setPeekReveal] = useState<{ slot: number; card: Card } | null>(null)
   const peekTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const stampTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
   const canDraw = isDrawPhase && !busy
   const canTakeDiscard = canDraw && !!discardTop
+
+  const showStampOverlay = useCallback((playerId: string, type: 'lock' | 'unlock') => {
+    if (reduced) return
+    const existing = stampTimersRef.current[playerId]
+    if (existing) clearTimeout(existing)
+    setStampOverlays((prev) => ({ ...prev, [playerId]: type }))
+    stampTimersRef.current[playerId] = setTimeout(() => {
+      setStampOverlays((prev) => ({ ...prev, [playerId]: null }))
+      delete stampTimersRef.current[playerId]
+    }, 800)
+  }, [reduced, setStampOverlays])
 
   // Clean up peek timer on unmount
   useEffect(() => {
     return () => {
       if (peekTimerRef.current) clearTimeout(peekTimerRef.current)
+      Object.values(stampTimersRef.current).forEach(clearTimeout)
+      stampTimersRef.current = {}
     }
   }, [])
 
@@ -288,6 +302,7 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
     const discardEl = discardPileRef.current
     const slotRect = getLocalSlotRect(slotIndex)
     const originRect = fromRect ?? stagingEl?.getBoundingClientRect() ?? null
+    const swappedOutCard = privateState?.hand?.[slotIndex] ?? null
 
     playSfx('swap')
     vibrate()
@@ -297,7 +312,7 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
         originRect,
         slotRect,
         discardEl.getBoundingClientRect(),
-        null,
+        swappedOutCard,
       )
     } else {
       resetChoreo()
@@ -308,7 +323,7 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
     }, () => {
       reconstructStaging(drawnCard ?? choreo.staging.card, privateState?.drawnCardSource ?? choreo.staging.source ?? null)
     })
-  }, [gameId, reduced, getLocalSlotRect, startSwapFromStaging, resetChoreo, withBusy, stagingRef, discardPileRef, drawnCard, choreo.staging, privateState?.drawnCardSource, reconstructStaging])
+  }, [gameId, reduced, getLocalSlotRect, startSwapFromStaging, resetChoreo, withBusy, stagingRef, discardPileRef, drawnCard, choreo.staging, privateState?.drawnCardSource, privateState?.hand, reconstructStaging])
 
   const handleDiscard = (fromRect?: DOMRect | null) => {
     setModal({ type: 'none' })
@@ -332,7 +347,7 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
         flightFaceUp,
       )
     } else if (!reduced && localEl && discardEl) {
-      triggerFly(localEl.getBoundingClientRect(), discardEl.getBoundingClientRect(), false)
+      triggerFly(localEl.getBoundingClientRect(), discardEl.getBoundingClientRect(), flightFaceUp, flightCard)
       resetChoreo()
     } else {
       resetChoreo()
@@ -496,20 +511,14 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
         withBusy(async () => {
           await lockCard(gameId!, first.playerId, first.slotIndex)
           playSfx('lock'); vibrate(50)
-          if (!reduced) {
-            setStampOverlays((prev) => ({ ...prev, [first.playerId]: 'lock' }))
-            setTimeout(() => setStampOverlays((prev) => ({ ...prev, [first.playerId]: null })), 800)
-          }
+          showStampOverlay(first.playerId, 'lock')
         })
         break
       case 'anyLockedSlot':
         withBusy(async () => {
           await unlockCard(gameId!, first.playerId, first.slotIndex)
           playSfx('unlock'); vibrate()
-          if (!reduced) {
-            setStampOverlays((prev) => ({ ...prev, [first.playerId]: 'unlock' }))
-            setTimeout(() => setStampOverlays((prev) => ({ ...prev, [first.playerId]: null })), 800)
-          }
+          showStampOverlay(first.playerId, 'unlock')
         })
         break
       case 'anyPlayer':
@@ -519,7 +528,7 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
         })
         break
     }
-  }, [selection, confirmSelection, withBusy, gameId, reduced, setStampOverlays, noMemoryMode])
+  }, [selection, confirmSelection, withBusy, gameId, reduced, showStampOverlay, noMemoryMode])
 
   const handleSelectionClick = useCallback((target: SelectedTarget) => {
     // For swap (anyPlayerSlot two-pick), prevent selecting a second card from the same player
@@ -558,12 +567,22 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
 
   const handleLockSelect = (targetPlayerId: string, slotIndex: number) => {
     setModal({ type: 'none' })
-    withBusy(async () => { await lockCard(gameId!, targetPlayerId, slotIndex); playSfx('lock'); vibrate(50) })
+    withBusy(async () => {
+      await lockCard(gameId!, targetPlayerId, slotIndex)
+      playSfx('lock')
+      vibrate(50)
+      showStampOverlay(targetPlayerId, 'lock')
+    })
   }
 
   const handleUnlockSelect = (targetPlayerId: string, slotIndex: number) => {
     setModal({ type: 'none' })
-    withBusy(async () => { await unlockCard(gameId!, targetPlayerId, slotIndex); playSfx('unlock'); vibrate() })
+    withBusy(async () => {
+      await unlockCard(gameId!, targetPlayerId, slotIndex)
+      playSfx('unlock')
+      vibrate()
+      showStampOverlay(targetPlayerId, 'unlock')
+    })
   }
 
   const handleRearrangeSelect = (targetPlayerId: string) => {

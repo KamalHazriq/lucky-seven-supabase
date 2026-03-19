@@ -325,7 +325,7 @@ body {
     linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 22%, transparent 78%, rgba(250,204,21,0.08) 100%),
     radial-gradient(circle at 50% 18%, var(--l7-cardback-accent-soft) 0%, transparent 44%),
     radial-gradient(circle at 50% 82%, rgba(250,204,21,0.07) 0%, transparent 36%);
-  opacity: 0.56;
+  opacity: 0.82;
 }
 
 .l7-cardback-shell::after {
@@ -341,8 +341,8 @@ body {
     120deg,
     transparent 0%,
     rgba(255,255,255,0.03) 28%,
-    rgba(255,255,255,0.12) 49%,
-    rgba(250,204,21,0.1) 57%,
+    rgba(255,255,255,0.16) 49%,
+    rgba(250,204,21,0.14) 57%,
     transparent 84%
   );
   mix-blend-mode: screen;
@@ -355,11 +355,11 @@ body {
 }
 
 .l7-cardback-shell-interactive:hover {
-  filter: saturate(1.04);
+  filter: saturate(1.08);
 }
 
 .l7-cardback-shell-interactive:hover::after {
-  animation: l7-card-glint 0.9s cubic-bezier(0.22, 0.9, 0.36, 1) 1;
+  animation: l7-card-glint 0.95s cubic-bezier(0.22, 0.9, 0.36, 1) 1;
 }
 
 /* ─── Face-up card suit colors (high contrast) ────────────── */
@@ -433,8 +433,8 @@ body {
     120deg,
     transparent 0%,
     rgba(255,255,255,0.02) 26%,
-    rgba(255,255,255,0.14) 48%,
-    rgba(250,204,21,0.1) 56%,
+    rgba(255,255,255,0.18) 48%,
+    rgba(250,204,21,0.14) 56%,
     transparent 84%
   );
   mix-blend-mode: screen;
@@ -448,9 +448,9 @@ body {
   inset: 0;
   border-radius: inherit;
   background:
-    radial-gradient(circle at 50% 12%, rgba(125,211,252,0.1) 0%, transparent 32%),
-    linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 28%, transparent 74%, rgba(250,204,21,0.04) 100%);
-  opacity: 0.54;
+    radial-gradient(circle at 50% 12%, rgba(125,211,252,0.16) 0%, transparent 32%),
+    linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 28%, transparent 74%, rgba(250,204,21,0.06) 100%);
+  opacity: 0.7;
 }
 
 /* ─── Pile hover lift — subtle rise for clickable piles ───── */

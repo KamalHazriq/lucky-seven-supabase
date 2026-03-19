@@ -281,11 +281,11 @@ function CardView({
           <LuckySevenCardBack accentColor={ownerColor} className="h-full w-full" />
           {!perfMode && (
             <div
-              className="card-shimmer pointer-events-none absolute inset-0 opacity-40 mix-blend-screen"
+              className="card-shimmer pointer-events-none absolute inset-0 opacity-55 mix-blend-screen"
               style={{
                 '--shimmer-color': ownerColor
-                  ? hexToRgba(ownerColor, 0.1)
-                  : 'rgba(125, 211, 252, 0.08)',
+                  ? hexToRgba(ownerColor, 0.14)
+                  : 'rgba(125, 211, 252, 0.1)',
               } as React.CSSProperties}
             />
           )}

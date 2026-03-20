@@ -322,10 +322,10 @@ body {
   border-radius: inherit;
   pointer-events: none;
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 22%, transparent 78%, rgba(250,204,21,0.08) 100%),
-    radial-gradient(circle at 50% 18%, var(--l7-cardback-accent-soft) 0%, transparent 44%),
-    radial-gradient(circle at 50% 82%, rgba(250,204,21,0.07) 0%, transparent 36%);
-  opacity: 0.82;
+    linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 24%, transparent 80%, rgba(226,232,240,0.05) 100%),
+    radial-gradient(circle at 50% 18%, var(--l7-cardback-accent-soft) 0%, transparent 38%),
+    radial-gradient(circle at 50% 82%, rgba(226,232,240,0.05) 0%, transparent 30%);
+  opacity: 0.56;
 }
 
 .l7-cardback-shell::after {
@@ -340,9 +340,9 @@ body {
   background: linear-gradient(
     120deg,
     transparent 0%,
-    rgba(255,255,255,0.03) 28%,
-    rgba(255,255,255,0.16) 49%,
-    rgba(250,204,21,0.14) 57%,
+    rgba(255,255,255,0.02) 28%,
+    rgba(255,255,255,0.1) 49%,
+    rgba(103,232,249,0.08) 57%,
     transparent 84%
   );
   mix-blend-mode: screen;
@@ -355,7 +355,7 @@ body {
 }
 
 .l7-cardback-shell-interactive:hover {
-  filter: saturate(1.08);
+  filter: saturate(1.04);
 }
 
 .l7-cardback-shell-interactive:hover::after {
@@ -433,8 +433,8 @@ body {
     120deg,
     transparent 0%,
     rgba(255,255,255,0.02) 26%,
-    rgba(255,255,255,0.18) 48%,
-    rgba(250,204,21,0.14) 56%,
+    rgba(255,255,255,0.12) 48%,
+    rgba(103,232,249,0.1) 56%,
     transparent 84%
   );
   mix-blend-mode: screen;
@@ -448,9 +448,9 @@ body {
   inset: 0;
   border-radius: inherit;
   background:
-    radial-gradient(circle at 50% 12%, rgba(125,211,252,0.16) 0%, transparent 32%),
-    linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 28%, transparent 74%, rgba(250,204,21,0.06) 100%);
-  opacity: 0.7;
+    radial-gradient(circle at 50% 12%, rgba(125,211,252,0.12) 0%, transparent 28%),
+    linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 28%, transparent 74%, rgba(226,232,240,0.05) 100%);
+  opacity: 0.52;
 }
 
 /* ─── Pile hover lift — subtle rise for clickable piles ───── */

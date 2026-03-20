@@ -1,0 +1,157 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 140" width="300" height="420" role="img" aria-label="Lucky Seven framed minimalist card back preview">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="100" y2="140" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#06101a" />
+      <stop offset="54%" stop-color="#0a1524" />
+      <stop offset="100%" stop-color="#040912" />
+    </linearGradient>
+    <radialGradient id="center-glow" cx="50%" cy="50%" r="58%">
+      <stop offset="0%" stop-color="rgba(103, 232, 249, 0.1)" />
+      <stop offset="44%" stop-color="rgba(103, 232, 249, 0.05)" />
+      <stop offset="100%" stop-color="rgba(0, 0, 0, 0)" />
+    </radialGradient>
+    <linearGradient id="frame" x1="10" y1="10" x2="90" y2="130" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="rgba(255, 255, 255, 0.1)" />
+      <stop offset="60%" stop-color="rgba(103, 232, 249, 0.24)" />
+      <stop offset="100%" stop-color="rgba(226, 232, 240, 0.28)" />
+    </linearGradient>
+    <linearGradient id="signal" x1="31" y1="32" x2="69" y2="53" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#67e8f9" />
+      <stop offset="58%" stop-color="rgba(226, 232, 240, 0.88)" />
+      <stop offset="100%" stop-color="rgba(226, 232, 240, 0.98)" />
+    </linearGradient>
+    <linearGradient id="guide" x1="20" y1="24" x2="50" y2="70" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="rgba(103, 232, 249, 0.1)" />
+      <stop offset="100%" stop-color="rgba(226, 232, 240, 0.18)" />
+    </linearGradient>
+  </defs>
+
+  <rect x="0.5" y="0.5" width="99" height="139" rx="14" fill="url(#bg)" />
+  <rect x="0.5" y="0.5" width="99" height="139" rx="14" fill="url(#center-glow)" opacity="0.9" />
+
+  <rect
+    x="7"
+    y="7"
+    width="86"
+    height="126"
+    rx="10"
+    fill="none"
+    stroke="url(#frame)"
+    stroke-width="1.15"
+  />
+  <path
+    d="M15 12H85L88 15V125L85 128H15L12 125V15Z"
+    fill="none"
+    stroke="rgba(255, 255, 255, 0.05)"
+    stroke-width="0.8"
+  />
+
+  <path
+    d="M50 18L68 30L74 48L68 66L50 78L32 66L26 48L32 30Z"
+    fill="rgba(8, 19, 31, 0.34)"
+    stroke="rgba(226, 232, 240, 0.12)"
+    stroke-width="1"
+  />
+  <path
+    d="M50 24L62 32L66 48L62 62L50 70L38 62L34 48L38 32Z"
+    fill="none"
+    stroke="rgba(103, 232, 249, 0.12)"
+    stroke-width="1"
+  />
+
+  <g opacity="0.84">
+    <path
+      d="M20 24L37 41V56L29 65"
+      fill="none"
+      stroke="url(#guide)"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="1.4"
+    />
+    <path
+      d="M80 24L63 41V56L71 65"
+      fill="none"
+      stroke="url(#guide)"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="1.4"
+    />
+    <g transform="rotate(180 50 70)">
+      <path
+        d="M20 24L37 41V56L29 65"
+        fill="none"
+        stroke="url(#guide)"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="1.4"
+      />
+      <path
+        d="M80 24L63 41V56L71 65"
+        fill="none"
+        stroke="url(#guide)"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="1.4"
+      />
+    </g>
+  </g>
+
+  <g opacity="0.96">
+    <path
+      d="M31 32H69L49.5 53"
+      fill="none"
+      stroke="rgba(255, 255, 255, 0.07)"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="8"
+    />
+    <path
+      d="M31 32H69L49.5 53"
+      fill="none"
+      stroke="url(#signal)"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="3.4"
+    />
+    <g transform="rotate(180 50 70)">
+      <path
+        d="M31 32H69L49.5 53"
+        fill="none"
+        stroke="rgba(255, 255, 255, 0.07)"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="8"
+      />
+      <path
+        d="M31 32H69L49.5 53"
+        fill="none"
+        stroke="url(#signal)"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="3.4"
+      />
+    </g>
+  </g>
+
+  <line
+    x1="36"
+    y1="70"
+    x2="64"
+    y2="70"
+    stroke="rgba(255, 255, 255, 0.08)"
+    stroke-linecap="round"
+    stroke-width="0.9"
+  />
+  <rect
+    x="44.5"
+    y="64.5"
+    width="11"
+    height="11"
+    rx="1.6"
+    transform="rotate(45 50 70)"
+    fill="rgba(6, 16, 26, 0.96)"
+    stroke="rgba(226, 232, 240, 0.56)"
+    stroke-width="1"
+  />
+  <circle cx="50" cy="70" r="2" fill="#f6fbff" />
+</svg>

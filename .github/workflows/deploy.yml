@@ -27,6 +27,18 @@ jobs:
 
       - run: npm ci
 
+      - name: Check migration order
+        run: bash scripts/check-migration-order.sh
+
+      - name: Run backend integration tests
+        run: bash scripts/test-backend.sh
+
+      - name: Run frontend tests
+        run: npm test
+        env:
+          VITE_SUPABASE_URL: https://example.supabase.co
+          VITE_SUPABASE_ANON_KEY: public-anon-key-for-build
+
       - name: Build
         run: npm run build
         env:

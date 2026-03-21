@@ -37,6 +37,16 @@ Lucky Seven is a real-time online card game for 2 to 8 players. Every player man
 
 Built by Kamal Hazriq and Imaduddin. Hosted at [luckyseven.site](https://luckyseven.site).
 
+## Latest Patch
+
+### v1.0.2 · Reliability & Recovery Pass · 21 March 2026
+
+- Added backend integration coverage for critical SQL gameplay flows including draw, discard, swap, powers, AFK skip, vote-kick, rematch, and reveal scoring
+- Replaced more brittle client-side log parsing with structured action events carried through game history
+- Hardened reconnect and recovery UX in the lobby, history views, and error boundaries
+- Split oversized Supabase/gameplay modules, strengthened generated database typing, and added CI checks for migrations, backend tests, frontend tests, and build safety
+- No gameplay rules, scoring balance, card mechanics, or intended flow changes in this patch
+
 ## Highlights
 
 | Area | What it includes |
@@ -45,7 +55,7 @@ Built by Kamal Hazriq and Imaduddin. Hosted at [luckyseven.site](https://luckyse
 | Game customization | Configurable power assignments, deck size, joker count, turn timer, 3-card or 4-card hands, no-memory mode |
 | Competitive tools | AFK protection, vote-kick flow, rematch support, action versioning, race-safe RPCs |
 | Social features | In-game chat, live lobby updates, patch notes modal, share links |
-| Reliability | Supabase Realtime, RLS-protected private state, analytics, client error logging, maintenance jobs |
+| Reliability | Supabase Realtime, RLS-protected private state, structured action events, backend integration tests, analytics, client error logging, maintenance jobs |
 | UX polish | Mobile-friendly layout, premium table themes, animations, sound effects, results celebration |
 
 ## Gameplay At A Glance
@@ -137,6 +147,17 @@ npm test
 npm run build
 ```
 
+### 6. Validate backend changes
+
+The repo now includes Docker-backed integration tests for the critical SQL RPC flows and a migration-order guard for future schema changes:
+
+```bash
+npm run verify:migrations
+npm run test:backend
+```
+
+These commands require Docker locally. CI runs both checks automatically before deploys.
+
 ## Deployment
 
 Deployment is automated through GitHub Actions. Every push to `main` builds and deploys the app.
@@ -177,9 +198,9 @@ All authoritative game state lives in PostgreSQL through Supabase. Clients subsc
 | `game_private_state` | Hidden hand data, known cards, drawn-card state |
 | `game_internal` | Draw pile and internal-only game data |
 | `game_reveals` | Safe end-game reveal records |
-| `game_history` | Action log entries |
-| `game_chat` | Chat messages |
-| `game_summary` | Final scores and game stats |
+| `game_history` | Action log entries with human-readable messages and structured event payloads |
+| `game_chat_messages` | Chat messages |
+| `game_summaries` | Final scores and game stats |
 | `global_stats` | Visits and aggregate counters |
 | `analytics_events` | Lightweight analytics events |
 | `client_error_logs` | Client-side crash and error reports |
@@ -192,6 +213,10 @@ All authoritative game state lives in PostgreSQL through Supabase. Clients subsc
 - Action versioning helps prevent duplicate or stale actions
 - Database locking is used in gameplay RPCs to reduce race conditions
 - Public clients only receive state they are allowed to see
+
+### Migration strategy
+
+Legacy duplicate prefixes at `00018_*` and `00019_*` are intentionally preserved for compatibility with already-applied environments. New migrations are expected to stay unique from this point onward, and the baseline plan is documented in [docs/migration-baseline-strategy.md](docs/migration-baseline-strategy.md).
 
 <details>
 <summary><strong>Project structure</strong></summary>

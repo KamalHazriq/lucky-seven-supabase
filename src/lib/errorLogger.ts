@@ -6,8 +6,7 @@
  * - Cooldown: max 10 errors per minute to prevent flood
  * - Uses current session if available (no forced auth)
  */
-
-import { supabase } from './supabase'
+import { callRpc } from './supabaseRpc'
 
 // ─── Dedup + rate-limit state ────────────────────────────────
 const recentErrors = new Map<string, number>()
@@ -79,7 +78,7 @@ export function logClientError(error: unknown, context?: string): void {
 
 async function _sendError(err: Error, context?: string): Promise<void> {
   try {
-    await supabase.rpc('log_client_error', {
+    await callRpc('log_client_error', {
       p_session_id: getSessionId(),
       p_error_name: err.name.slice(0, 200),
       p_message: err.message.slice(0, 2000),

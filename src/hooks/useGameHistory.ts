@@ -5,14 +5,17 @@ import type { LogEntry } from '../lib/types'
 export interface GameHistoryState {
   entries: LogEntry[]
   loading: boolean
+  error: string | null
   hasMore: boolean
   load: (reset?: boolean) => Promise<void>
   reset: () => void
+  retry: () => Promise<void>
 }
 
 export function useGameHistory(gameId: string | undefined): GameHistoryState {
   const [entries, setEntries] = useState<LogEntry[]>([])
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [hasMore, setHasMore] = useState(true)
 
   const offsetRef = useRef(0)
@@ -22,6 +25,7 @@ export function useGameHistory(gameId: string | undefined): GameHistoryState {
     if (!gameId || loadingRef.current) return
     loadingRef.current = true
     setLoading(true)
+    setError(null)
     try {
       const offset = resetFlag ? 0 : offsetRef.current
       const { entries: newEntries, hasMore: more } = await fetchHistoryPage(gameId, offset)
@@ -29,7 +33,7 @@ export function useGameHistory(gameId: string | undefined): GameHistoryState {
       setEntries((prev) => (resetFlag ? newEntries : [...prev, ...newEntries]))
       setHasMore(more)
     } catch (e) {
-      console.error('History load failed:', e)
+      setError((e as Error).message || 'Failed to load game history.')
     } finally {
       loadingRef.current = false
       setLoading(false)
@@ -40,7 +44,12 @@ export function useGameHistory(gameId: string | undefined): GameHistoryState {
     setEntries([])
     offsetRef.current = 0
     setHasMore(true)
+    setError(null)
   }, [])
 
-  return { entries, loading, hasMore, load, reset }
+  const retry = useCallback(async () => {
+    await load(entries.length === 0)
+  }, [entries.length, load])
+
+  return { entries, loading, error, hasMore, load, reset, retry }
 }

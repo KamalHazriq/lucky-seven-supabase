@@ -29,12 +29,14 @@ function GameLog({ log, players, position = 'bottom' }: GameLogProps) {
     if (el) el.scrollTop = el.scrollHeight
   }, [lastLogKey])
 
-  const playerInfos = useMemo(() =>
-    Object.values(players).map((p) => ({
-      displayName: p.displayName,
-      seatIndex: p.seatIndex,
-      colorKey: p.colorKey,
-    })),
+  const playerInfos = useMemo(
+    () =>
+      Object.entries(players).map(([playerId, player]) => ({
+        playerId,
+        displayName: player.displayName,
+        seatIndex: player.seatIndex,
+        colorKey: player.colorKey,
+      })),
     [players],
   )
 
@@ -90,7 +92,7 @@ function GameLog({ log, players, position = 'bottom' }: GameLogProps) {
                     {formatTimestamp(entry.ts)}
                   </span>
                   <div className="flex-1 min-w-0 text-[11px] leading-snug flex flex-wrap items-center gap-0.5" style={{ color: 'var(--text-muted)' }}>
-                    {renderLogMessage(entry.msg, playerInfos)}
+                    {renderLogMessage(entry, playerInfos)}
                   </div>
                 </motion.div>
               )

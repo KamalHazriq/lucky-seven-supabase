@@ -7,12 +7,16 @@
 import type {
   GameDoc, PlayerDoc, PrivatePlayerDoc, PlayerScore, ChatMessage, LockInfo,
 } from './types'
+import type { TableRow } from './supabaseDatabase.generated'
 import { normalizeLockedBy, normalizeLocks } from './slotState'
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Row = Record<string, any>
+type GameRow = TableRow<'games'>
+type PlayerRow = TableRow<'game_players'>
+type PrivateStateRow = TableRow<'game_private_state'>
+type RevealRow = TableRow<'game_reveals'>
+type ChatRow = TableRow<'game_chat_messages'>
 
-export function mapGameRow(r: Row): GameDoc {
+export function mapGameRow(r: GameRow): GameDoc {
   // spent_power_card_ids: TEXT[] → Record<string, boolean>
   const spentArr: string[] = r.spent_power_card_ids ?? []
   const spent: Record<string, boolean> = {}
@@ -43,7 +47,7 @@ export function mapGameRow(r: Row): GameDoc {
   }
 }
 
-export function mapPlayerRow(r: Row): PlayerDoc {
+export function mapPlayerRow(r: PlayerRow): PlayerDoc {
   const rawLocks = Array.isArray(r.locks) ? (r.locks as boolean[]) : undefined
   const lockedByRaw = Array.isArray(r.locked_by)
     ? (r.locked_by as (LockInfo | null)[])
@@ -61,7 +65,7 @@ export function mapPlayerRow(r: Row): PlayerDoc {
   }
 }
 
-export function mapPrivateStateRow(r: Row): PrivatePlayerDoc {
+export function mapPrivateStateRow(r: PrivateStateRow): PrivatePlayerDoc {
   return {
     hand: r.hand ?? [],
     drawnCard: r.drawn_card ?? null,
@@ -71,7 +75,7 @@ export function mapPrivateStateRow(r: Row): PrivatePlayerDoc {
   }
 }
 
-export function mapRevealRow(r: Row): PlayerScore {
+export function mapRevealRow(r: RevealRow): PlayerScore {
   return {
     playerId: r.player_id,
     displayName: r.display_name,
@@ -81,7 +85,7 @@ export function mapRevealRow(r: Row): PlayerScore {
   }
 }
 
-export function mapChatRow(r: Row): ChatMessage {
+export function mapChatRow(r: ChatRow): ChatMessage {
   return {
     id: r.id,
     userId: r.user_id,

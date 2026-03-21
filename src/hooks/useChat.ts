@@ -3,6 +3,7 @@ import toast from 'react-hot-toast'
 import { supabase, ensureAuth } from '../lib/supabase'
 import { sendChatMessage } from '../lib/supabaseGameService'
 import { mapChatRow } from '../lib/supabaseMappers'
+import type { TableRow } from '../lib/supabaseDatabase.generated'
 import type { ChatMessage } from '../lib/types'
 
 const STORAGE_KEY = 'lucky7_chat_open'
@@ -66,7 +67,7 @@ export function useChat(
         },
         (payload) => {
           if (cancelled) return
-          const msg = mapChatRow(payload.new)
+          const msg = mapChatRow(payload.new as TableRow<'game_chat_messages'>)
           setMessages((prev) => {
             const next = [...prev, msg]
             if (next.length > CHAT_MAX) next.splice(0, next.length - CHAT_MAX)
@@ -92,8 +93,9 @@ export function useChat(
         .order('ts', { ascending: false })
         .limit(CHAT_MAX)
         .then(({ data }) => {
-          if (cancelled || !data) return
-          const msgs = data.map(mapChatRow).reverse()
+          const rows = (data ?? []) as TableRow<'game_chat_messages'>[]
+          if (cancelled || rows.length === 0) return
+          const msgs = rows.map(mapChatRow).reverse()
           setMessages(msgs)
         })
     })

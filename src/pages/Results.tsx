@@ -8,6 +8,7 @@ import { revealHand, subscribeReveals } from '../lib/supabaseGameService'
 import { writeGameSummary, playAgain, joinGame } from '../lib/supabaseGameService'
 import CardView from '../components/CardView'
 import VersionLabel from '../components/VersionLabel'
+import { GameErrorScreen, GameLoadingScreen } from '../components/GameStatusScreen'
 import { playSfx, vibrate } from '../lib/sfx'
 import { trackEvent } from '../lib/analytics'
 import { Badge } from '@/components/ui/badge'
@@ -103,7 +104,7 @@ function useConfetti(trigger: boolean) {
 export default function Results() {
   const { gameId } = useParams<{ gameId: string }>()
   const { user } = useAuth()
-  const { game, players, loading } = useGame(gameId, user?.uid)
+  const { game, players, loading, error, retry } = useGame(gameId, user?.uid)
   const navigate = useNavigate()
   const [scores, setScores] = useState<PlayerScore[]>([])
   const [playAgainBusy, setPlayAgainBusy] = useState(false)
@@ -168,15 +169,18 @@ export default function Results() {
     return () => clearTimeout(timer)
   }, [allRevealed])
 
-  if (loading || !game) {
+  if (loading) {
+    return <GameLoadingScreen />
+  }
+
+  if (!game) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-          className="w-8 h-8 border-2 border-muted-foreground border-t-transparent rounded-full"
-        />
-      </div>
+      <GameErrorScreen
+        title="Could not load results"
+        message={error ?? 'The results screen is unavailable right now.'}
+        onRetry={() => void retry()}
+        onGoHome={() => navigate('/')}
+      />
     )
   }
 

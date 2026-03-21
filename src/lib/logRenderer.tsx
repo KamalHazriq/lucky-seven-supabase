@@ -1,7 +1,9 @@
 import { type ReactNode } from 'react'
 import { getPlayerColor } from './playerColors'
+import type { LogEntry } from './types'
 
 interface PlayerInfo {
+  playerId?: string
   displayName: string
   seatIndex: number
   colorKey?: number
@@ -124,6 +126,238 @@ function renderActionChip(label: string, color: string, key: string) {
   )
 }
 
+function renderPlayerChip(player: PlayerInfo | null | undefined, key: string, fallbackLabel = 'Unknown') {
+  if (!player) {
+    return (
+      <span
+        key={key}
+        className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-bold leading-none align-middle whitespace-nowrap"
+        style={{ backgroundColor: 'rgba(100,116,139,0.18)', color: '#e2e8f0' }}
+      >
+        {fallbackLabel}
+      </span>
+    )
+  }
+
+  const color = getPlayerColor(player.seatIndex, player.colorKey)
+  return (
+    <span
+      key={key}
+      className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-bold leading-none align-middle whitespace-nowrap"
+      style={{
+        backgroundColor: color.bg,
+        color: color.text,
+        minWidth: '2em',
+        textAlign: 'center',
+      }}
+    >
+      {player.displayName}
+    </span>
+  )
+}
+
+function renderSlotChip(slotIndex: number, key: string) {
+  return (
+    <span
+      key={key}
+      className="inline-flex items-center px-1 py-px rounded text-[9px] font-bold leading-none align-middle"
+      style={{
+        color: '#f1f5f9',
+        backgroundColor: 'rgba(100,116,139,0.15)',
+        border: '1px solid rgba(100,116,139,0.3)',
+      }}
+    >
+      #{slotIndex + 1}
+    </span>
+  )
+}
+
+function appendText(target: ReactNode[], text: string | null | undefined, key: string) {
+  if (!text) return
+  target.push(<span key={key}>{text}</span>)
+}
+
+function resolvePlayerInfo(
+  playerId: string | null | undefined,
+  byId: Map<string, PlayerInfo>,
+): PlayerInfo | null {
+  if (!playerId) return null
+  return byId.get(playerId) ?? null
+}
+
+function renderStructuredLogMessage(entry: LogEntry, playerMap: PlayerInfo[]): ReactNode[] | null {
+  const event = entry.event
+  if (!event) return null
+
+  const byId = new Map<string, PlayerInfo>()
+  for (const player of playerMap) {
+    if (player.playerId) byId.set(player.playerId, player)
+  }
+
+  const nodes: ReactNode[] = []
+
+  switch (event.kind) {
+    case 'game_created':
+      nodes.push(renderPlayerChip(resolvePlayerInfo(event.actorId, byId), 'actor'))
+      appendText(nodes, ' created the game', 'text')
+      break
+    case 'player_joined':
+      nodes.push(renderPlayerChip(resolvePlayerInfo(event.actorId, byId), 'actor'))
+      appendText(nodes, ' ', 'gap')
+      nodes.push(renderActionChip('JOINED', 'text-emerald-400', 'join'))
+      break
+    case 'game_started':
+      nodes.push(renderActionChip('STARTED', 'text-emerald-400', 'started'))
+      break
+    case 'draw_pile':
+      nodes.push(renderPlayerChip(resolvePlayerInfo(event.actorId, byId), 'actor'))
+      appendText(nodes, ' ', 'gap-1')
+      nodes.push(renderActionChip('DREW', 'text-blue-400', 'drew'))
+      appendText(nodes, ' from ', 'text-1')
+      nodes.push(renderSourceChip('PILE', 'text-blue-400', 'pile'))
+      break
+    case 'take_discard':
+      nodes.push(renderPlayerChip(resolvePlayerInfo(event.actorId, byId), 'actor'))
+      appendText(nodes, ' ', 'gap-2')
+      nodes.push(renderActionChip('TOOK', 'text-orange-400', 'took'))
+      appendText(nodes, ' from ', 'text-2')
+      nodes.push(renderSourceChip('DISCARD', 'text-orange-400', 'discard'))
+      break
+    case 'cancel_draw':
+      nodes.push(renderPlayerChip(resolvePlayerInfo(event.actorId, byId), 'actor'))
+      appendText(nodes, ' returned the card to ', 'cancel')
+      nodes.push(renderSourceChip('DISCARD', 'text-orange-400', 'discard'))
+      break
+    case 'swap_slot':
+      nodes.push(renderPlayerChip(resolvePlayerInfo(event.actorId, byId), 'actor'))
+      appendText(nodes, ' ', 'gap-3')
+      nodes.push(renderActionChip('SWAPPED', 'text-amber-400', 'swapped'))
+      appendText(nodes, ' their card ', 'text-3')
+      nodes.push(renderSlotChip(event.slotIndex, 'slot'))
+      break
+    case 'discard_drawn':
+      nodes.push(renderPlayerChip(resolvePlayerInfo(event.actorId, byId), 'actor'))
+      appendText(nodes, ' ', 'gap-4')
+      nodes.push(renderActionChip('DISCARDED', 'text-orange-400', 'discarded'))
+      break
+    case 'power_swap': {
+      const actor = resolvePlayerInfo(event.actorId, byId)
+      const first = resolvePlayerInfo(event.first.playerId, byId)
+      const second = resolvePlayerInfo(event.second.playerId, byId)
+      nodes.push(renderPlayerChip(actor, 'actor'))
+      appendText(nodes, ' ', 'gap-5')
+      nodes.push(renderPowerChip('SWAP', 'power'))
+      appendText(nodes, ' ', 'gap-6')
+      nodes.push(renderPlayerChip(first, 'first'))
+      appendText(nodes, ' ', 'gap-7')
+      nodes.push(renderSlotChip(event.first.slotIndex, 'first-slot'))
+      appendText(nodes, ' \u2194 ', 'arrow')
+      nodes.push(renderPlayerChip(second, 'second'))
+      appendText(nodes, ' ', 'gap-8')
+      nodes.push(renderSlotChip(event.second.slotIndex, 'second-slot'))
+      break
+    }
+    case 'power_lock': {
+      const actor = resolvePlayerInfo(event.actorId, byId)
+      const target = resolvePlayerInfo(event.target.playerId, byId)
+      nodes.push(renderPlayerChip(actor, 'actor'))
+      appendText(nodes, ' ', 'gap-9')
+      nodes.push(renderPowerChip('LOCK', 'power'))
+      appendText(nodes, ' on ', 'text-4')
+      nodes.push(renderPlayerChip(target, 'target'))
+      appendText(nodes, ' ', 'gap-10')
+      nodes.push(renderSlotChip(event.target.slotIndex, 'target-slot'))
+      break
+    }
+    case 'power_unlock': {
+      const actor = resolvePlayerInfo(event.actorId, byId)
+      nodes.push(renderPlayerChip(actor, 'actor'))
+      appendText(nodes, ' ', 'gap-11')
+      nodes.push(renderPowerChip('UNLOCK', 'power'))
+      if (event.fizzled || !event.target) {
+        appendText(nodes, ' but no card was locked', 'text-5')
+      } else {
+        const target = resolvePlayerInfo(event.target.playerId, byId)
+        appendText(nodes, ' on ', 'text-6')
+        nodes.push(renderPlayerChip(target, 'target'))
+        appendText(nodes, ' ', 'gap-12')
+        nodes.push(renderSlotChip(event.target.slotIndex, 'target-slot'))
+      }
+      break
+    }
+    case 'power_rearrange': {
+      const actor = resolvePlayerInfo(event.actorId, byId)
+      const target = resolvePlayerInfo(event.targetPlayerId, byId)
+      nodes.push(renderPlayerChip(actor, 'actor'))
+      appendText(nodes, ' ', 'gap-13')
+      nodes.push(renderPowerChip('CHAOS', 'power'))
+      if (target) {
+        appendText(nodes, ' on ', 'text-7')
+        nodes.push(renderPlayerChip(target, 'target'))
+      }
+      break
+    }
+    case 'power_peek': {
+      const actor = resolvePlayerInfo(event.actorId, byId)
+      const label = event.variant === 'self_all' || event.variant === 'opponent_all' ? 'PEEK ALL' : 'PEEK'
+      nodes.push(renderPlayerChip(actor, 'actor'))
+      appendText(nodes, ' ', 'gap-14')
+      nodes.push(renderPowerChip(label, 'power'))
+      if (event.targetPlayerId) {
+        const target = resolvePlayerInfo(event.targetPlayerId, byId)
+        if (target) {
+          appendText(nodes, ' on ', 'text-8')
+          nodes.push(renderPlayerChip(target, 'target'))
+        }
+      }
+      if (typeof event.slotIndex === 'number') {
+        appendText(nodes, ' ', 'gap-15')
+        nodes.push(renderSlotChip(event.slotIndex, 'peek-slot'))
+      }
+      break
+    }
+    case 'call_end':
+      nodes.push(renderPlayerChip(resolvePlayerInfo(event.actorId, byId), 'actor'))
+      appendText(nodes, ' ', 'gap-16')
+      nodes.push(renderActionChip('CALLED END', 'text-red-400', 'end'))
+      break
+    case 'vote_kick_started':
+      nodes.push(renderPlayerChip(resolvePlayerInfo(event.actorId, byId), 'actor'))
+      appendText(nodes, ' started a vote to kick ', 'text-9')
+      nodes.push(renderPlayerChip(resolvePlayerInfo(event.targetPlayerId, byId), 'target'))
+      appendText(nodes, ` (${event.requiredVotes} votes needed)`, 'text-10')
+      break
+    case 'vote_kick_cancelled':
+      appendText(nodes, 'Vote to kick ', 'text-11')
+      nodes.push(renderPlayerChip(resolvePlayerInfo(event.targetPlayerId, byId), 'target'))
+      appendText(nodes, ` was cancelled (${event.reason.replace(/_/g, ' ')})`, 'text-12')
+      break
+    case 'vote_kick_progress':
+      nodes.push(renderPlayerChip(resolvePlayerInfo(event.actorId, byId), 'actor'))
+      appendText(nodes, ' voted to kick ', 'text-13')
+      nodes.push(renderPlayerChip(resolvePlayerInfo(event.targetPlayerId, byId), 'target'))
+      appendText(nodes, ` (${event.votes}/${event.requiredVotes})`, 'text-14')
+      break
+    case 'player_kicked':
+      nodes.push(renderPlayerChip(resolvePlayerInfo(event.playerId, byId), 'player'))
+      appendText(nodes, ' was ', 'text-15')
+      nodes.push(renderActionChip(event.reason === 'afk' ? 'AFK-KICKED' : 'KICKED', 'text-red-400', 'kicked'))
+      break
+    case 'player_left':
+      nodes.push(renderPlayerChip(resolvePlayerInfo(event.playerId, byId), 'player'))
+      appendText(nodes, ' left the game', 'text-16')
+      break
+    case 'hand_revealed':
+      nodes.push(renderPlayerChip(resolvePlayerInfo(event.actorId, byId), 'actor'))
+      appendText(nodes, ` revealed their hand (${event.total}, ${event.sevens} sevens)`, 'text-17')
+      break
+    default:
+      return null
+  }
+
+  return nodes
+}
+
 /**
  * Process plain text for action verbs and power keywords.
  * Handles the innermost split layers.
@@ -220,9 +454,16 @@ function processTextFragment(text: string, keyPrefix: string): ReactNode[] {
  * v1.4.2: Card display chips, source labels, enhanced readability.
  */
 export function renderLogMessage(
-  msg: string,
+  entryOrMsg: LogEntry | string,
   playerMap: PlayerInfo[],
 ): ReactNode {
+  const entry = typeof entryOrMsg === 'string' ? null : entryOrMsg
+  if (entry?.event) {
+    const structured = renderStructuredLogMessage(entry, playerMap)
+    if (structured && structured.length > 0) return structured
+  }
+
+  const msg = typeof entryOrMsg === 'string' ? entryOrMsg : entryOrMsg.msg
   if (playerMap.length === 0 && !powerPattern.test(msg)) {
     // Still check for card/source patterns even without players
     powerPattern.lastIndex = 0

@@ -25,11 +25,16 @@ interface HistoryModalProps {
 }
 
 export default function HistoryModal({ open, onClose, gameId, players, history }: HistoryModalProps) {
-  const { entries, loading, hasMore, load, reset } = history
+  const { entries, loading, error, hasMore, load, reset, retry } = history
   const loadedRef = useRef(false)
 
   const playerInfos = useMemo(
-    () => Object.values(players).map((p) => ({ displayName: p.displayName, seatIndex: p.seatIndex })),
+    () => Object.entries(players).map(([playerId, player]) => ({
+      playerId,
+      displayName: player.displayName,
+      seatIndex: player.seatIndex,
+      colorKey: player.colorKey,
+    })),
     [players],
   )
 
@@ -75,7 +80,15 @@ export default function HistoryModal({ open, onClose, gameId, players, history }
             {loading && entries.length === 0 && (
               <p className="text-xs text-muted-foreground text-center py-8">Loading history...</p>
             )}
-            {!loading && entries.length === 0 && (
+            {error && (
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-3 text-center">
+                <p className="text-xs text-amber-200 mb-2">{error}</p>
+                <Button variant="outline" size="sm" onClick={() => void retry()} className="h-8 text-xs">
+                  Retry
+                </Button>
+              </div>
+            )}
+            {!loading && !error && entries.length === 0 && (
               <p className="text-xs text-muted-foreground text-center py-8">No history yet.</p>
             )}
 
@@ -88,7 +101,7 @@ export default function HistoryModal({ open, onClose, gameId, players, history }
                   {new Date(entry.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                 </span>
                 <div className="flex-1 min-w-0 text-[11px] leading-relaxed flex flex-wrap items-center gap-0.5 text-muted-foreground">
-                  {renderLogMessage(entry.msg, playerInfos)}
+                  {renderLogMessage(entry, playerInfos)}
                 </div>
               </div>
             ))}

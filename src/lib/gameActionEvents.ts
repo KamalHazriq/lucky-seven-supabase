@@ -1,4 +1,6 @@
 import type { LogEntry, PlayerDoc } from './types'
+import type { GameActionEvent } from './logEvents'
+import { isGameActionEvent } from './logEvents'
 
 export interface ResolvedPlayerRef {
   playerId: string
@@ -14,6 +16,7 @@ export interface ResolvedSlotTarget extends ResolvedPlayerRef {
 export type ParsedGameAction =
   | { kind: 'draw_pile'; actor: ResolvedPlayerRef; message: string }
   | { kind: 'take_discard'; actor: ResolvedPlayerRef; message: string }
+  | { kind: 'cancel_draw'; actor: ResolvedPlayerRef; message: string }
   | { kind: 'swap_slot'; actor: ResolvedPlayerRef; slotIndex: number; message: string }
   | { kind: 'discard_drawn'; actor: ResolvedPlayerRef; message: string }
   | { kind: 'power_swap'; actor: ResolvedPlayerRef; first: ResolvedSlotTarget; second: ResolvedSlotTarget; message: string }
@@ -74,8 +77,96 @@ function resolveTarget(name: string, slotIndex: number, players: Record<string, 
 
 const SWAP_CONNECTOR = '(?:<->|\\u2194|â†”|Ã¢â€ â€)'
 
+function parseStructuredGameAction(
+  event: GameActionEvent,
+  message: string,
+  players: Record<string, PlayerDoc>,
+): ParsedGameAction | null {
+  switch (event.kind) {
+    case 'draw_pile': {
+      const actor = resolvePlayerById(event.actorId, players)
+      return actor ? { kind: 'draw_pile', actor, message } : null
+    }
+    case 'take_discard': {
+      const actor = resolvePlayerById(event.actorId, players)
+      return actor ? { kind: 'take_discard', actor, message } : null
+    }
+    case 'cancel_draw': {
+      const actor = resolvePlayerById(event.actorId, players)
+      return actor ? { kind: 'cancel_draw', actor, message } : null
+    }
+    case 'swap_slot': {
+      const actor = resolvePlayerById(event.actorId, players)
+      return actor ? { kind: 'swap_slot', actor, slotIndex: event.slotIndex, message } : null
+    }
+    case 'discard_drawn': {
+      const actor = resolvePlayerById(event.actorId, players)
+      return actor ? { kind: 'discard_drawn', actor, message } : null
+    }
+    case 'power_swap': {
+      const actor = resolvePlayerById(event.actorId, players)
+      const first = resolvePlayerById(event.first.playerId, players)
+      const second = resolvePlayerById(event.second.playerId, players)
+      if (!actor || !first || !second) return null
+      return {
+        kind: 'power_swap',
+        actor,
+        first: { ...first, slotIndex: event.first.slotIndex },
+        second: { ...second, slotIndex: event.second.slotIndex },
+        message,
+      }
+    }
+    case 'power_lock': {
+      const actor = resolvePlayerById(event.actorId, players)
+      const target = resolvePlayerById(event.target.playerId, players)
+      if (!actor || !target) return null
+      return { kind: 'power_lock', actor, target: { ...target, slotIndex: event.target.slotIndex }, message }
+    }
+    case 'power_unlock': {
+      const actor = resolvePlayerById(event.actorId, players)
+      const target = event.target ? resolvePlayerById(event.target.playerId, players) : null
+      if (!actor) return null
+      return {
+        kind: 'power_unlock',
+        actor,
+        target: target && event.target ? { ...target, slotIndex: event.target.slotIndex } : null,
+        fizzled: event.fizzled,
+        message,
+      }
+    }
+    case 'power_rearrange': {
+      const actor = resolvePlayerById(event.actorId, players)
+      const target = event.targetPlayerId ? resolvePlayerById(event.targetPlayerId, players) : null
+      return actor ? { kind: 'power_rearrange', actor, target, message } : null
+    }
+    case 'power_peek': {
+      const actor = resolvePlayerById(event.actorId, players)
+      return actor ? { kind: 'power_peek', actor, variant: event.variant, message } : null
+    }
+    case 'call_end': {
+      const actor = resolvePlayerById(event.actorId, players)
+      return actor ? { kind: 'call_end', actor, message } : null
+    }
+    case 'player_kicked': {
+      const player = resolvePlayerById(event.playerId, players)
+      return { kind: 'player_kicked', playerName: player?.displayName ?? null, reason: event.reason, message }
+    }
+    case 'player_left': {
+      const player = resolvePlayerById(event.playerId, players)
+      return { kind: 'player_left', playerName: player?.displayName ?? null, message }
+    }
+    default:
+      return null
+  }
+}
+
 export function parseGameAction(entry: LogEntry | null | undefined, players: Record<string, PlayerDoc>): ParsedGameAction | null {
   if (!entry) return null
+
+  if (isGameActionEvent(entry.event)) {
+    const parsed = parseStructuredGameAction(entry.event, entry.msg, players)
+    if (parsed) return parsed
+  }
 
   const message = entry.msg
   const actor = resolveActorFromMessage(message, players)
@@ -86,6 +177,10 @@ export function parseGameAction(entry: LogEntry | null | undefined, players: Rec
 
   if (actor && message.includes('took from discard')) {
     return { kind: 'take_discard', actor, message }
+  }
+
+  if (actor && message.includes('returned the card to discard')) {
+    return { kind: 'cancel_draw', actor, message }
   }
 
   const swapSlotMatch = actor ? message.match(/swapped their card #(\d+)/i) : null

@@ -1,14 +1,16 @@
 {
   "name": "lucky-seven",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:backend": "bash scripts/test-backend.sh",
+    "verify:migrations": "bash scripts/check-migration-order.sh"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.99.2",

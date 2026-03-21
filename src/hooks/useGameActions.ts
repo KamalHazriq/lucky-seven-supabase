@@ -19,50 +19,15 @@ import {
 import { playSfx, vibrate } from '../lib/sfx'
 import type { Card, PowerEffectType, PowerRankKey, PrivatePlayerDoc } from '../lib/types'
 import type { SelectionModeState, SelectedTarget, SelectionConstraint } from './useSelectionMode'
-
-// ─── Selection constraint definitions ────────────────────────
-export const PEEK_ONE_CONSTRAINT: SelectionConstraint = {
-  targetType: 'yourSlot',
-  prompt: 'Pick one of your cards to peek',
-}
-
-export const SWAP_CONSTRAINT: SelectionConstraint = {
-  targetType: 'anyPlayerSlot',
-  prompt: 'Pick the first card to swap',
-  secondTargetType: 'anyPlayerSlot',
-  secondPrompt: 'Pick the second card to swap',
-}
-
-export const LOCK_CONSTRAINT: SelectionConstraint = {
-  targetType: 'anyUnlockedSlot',
-  prompt: 'Pick an unlocked card to lock',
-}
-
-export const UNLOCK_CONSTRAINT: SelectionConstraint = {
-  targetType: 'anyLockedSlot',
-  prompt: 'Pick a locked card to unlock',
-}
-
-export const REARRANGE_CONSTRAINT: SelectionConstraint = {
-  targetType: 'anyPlayer',
-  prompt: 'Pick a player to shuffle their cards',
-}
-
-// ─── Modal state type ────────────────────────────────────────
-export type ModalState =
-  | { type: 'peekOne' }
-  | { type: 'peekResult'; card: Card; slot: number }
-  | { type: 'peekAll'; cards: Record<string, Card> }
-  | { type: 'swap' }
-  | { type: 'lock' }
-  | { type: 'unlock' }
-  | { type: 'rearrange' }
-  | { type: 'peekChoice'; effectType: PowerEffectType; rankKey: PowerRankKey }
-  | { type: 'peekOpponent' }
-  | { type: 'peekOpponentResult'; card: Card; playerName: string; slot: number }
-  | { type: 'peekAllOpponent' }
-  | { type: 'peekAllOpponentResult'; cards: Record<number, Card>; playerName: string; locks: boolean[] }
-  | { type: 'none' }
+import type { ModalState } from './gameActionTypes'
+import {
+  LOCK_CONSTRAINT,
+  PEEK_ONE_CONSTRAINT,
+  REARRANGE_CONSTRAINT,
+  SWAP_CONSTRAINT,
+  UNLOCK_CONSTRAINT,
+} from './gameSelectionConstraints'
+import { useGameActionShortcuts } from './useGameActionShortcuts'
 
 // ─── Hook params ─────────────────────────────────────────────
 interface UseGameActionsParams {
@@ -612,48 +577,24 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
     setModal({ type: 'none' })
   }
 
-  // ─── Keyboard shortcuts ────────────────────────
-  useEffect(() => {
-    if (!isDesktop || !isMyTurn || isSpectator) return
-
-    const handler = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement)?.tagName
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
-
-      if (isSelecting) {
-        if (e.key === 'Enter' && selection.phase === 'confirming') {
-          e.preventDefault()
-          handleSelectionConfirm()
-        }
-        return
-      }
-
-      if (uiMode === 'actionbar' && hasDrawnCard && isActionPhase && modal.type === 'none' && !drawnCardDismissed) {
-        const num = parseInt(e.key)
-        if (num >= 1 && num <= cardsPerPlayer) {
-          const slotIdx = num - 1
-          if (!myLocks[slotIdx]) {
-            e.preventDefault()
-            handleSwap(slotIdx)
-          }
-        }
-        if (e.key === 'Escape') {
-          if (privateState?.drawnCardSource === 'discard') {
-            e.preventDefault()
-            handleCancelDraw()
-          }
-        }
-      }
-    }
-
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [
-    isDesktop, isMyTurn, isSpectator, isSelecting, selection.phase, uiMode,
-    hasDrawnCard, isActionPhase, modal.type, drawnCardDismissed,
-    myLocks, handleSelectionConfirm, handleSwap, handleCancelDraw, privateState?.drawnCardSource,
+  useGameActionShortcuts({
+    isDesktop,
+    isMyTurn,
+    isSpectator,
+    isSelecting,
+    selectionPhase: selection.phase,
+    uiMode,
+    hasDrawnCard,
+    isActionPhase,
+    modalType: modal.type,
+    drawnCardDismissed,
+    myLocks,
+    drawnCardSource: privateState?.drawnCardSource ?? null,
     cardsPerPlayer,
-  ])
+    onSelectionConfirm: handleSelectionConfirm,
+    onSwap: handleSwap,
+    onCancelDraw: handleCancelDraw,
+  })
 
   return {
     busy,

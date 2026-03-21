@@ -55,7 +55,7 @@ const staggerItem = {
 export default function Lobby() {
   const { gameId } = useParams<{ gameId: string }>()
   const { user } = useAuth()
-  const { game, players, loading } = useGame(gameId, user?.uid)
+  const { game, players, loading, error, connectionState, retry } = useGame(gameId, user?.uid)
   const navigate = useNavigate()
   const [showFeedback, setShowFeedback] = useState(false)
   const [showPatchNotes, setShowPatchNotes] = useState(false)
@@ -239,12 +239,24 @@ export default function Lobby() {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={springEntry}
-          className="text-center"
+          className="text-center max-w-sm px-5"
         >
-          <p className="text-muted-foreground text-lg mb-4">Game not found</p>
-          <Button variant="ghost" onClick={() => navigate('/')} className="text-indigo-400 hover:text-indigo-300">
-            Go Home
-          </Button>
+          <p className="text-muted-foreground text-lg mb-3">
+            {error ? 'Could not load this lobby' : 'Game not found'}
+          </p>
+          <p className="text-sm text-muted-foreground/80 mb-4">
+            {error ?? 'This room may have expired, been closed, or the link may be incorrect.'}
+          </p>
+          <div className="flex items-center justify-center gap-2">
+            {error && (
+              <Button variant="outline" onClick={() => void retry()}>
+                Retry
+              </Button>
+            )}
+            <Button variant="ghost" onClick={() => navigate('/')} className="text-indigo-400 hover:text-indigo-300">
+              Go Home
+            </Button>
+          </div>
         </motion.div>
       </div>
     )
@@ -272,6 +284,32 @@ export default function Lobby() {
           >
             Waiting for players...
           </motion.p>
+          {(error || connectionState !== 'connected') && (
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15, ...springEntry }}
+              className={`mt-3 rounded-xl border px-3 py-2 text-xs ${
+                connectionState === 'error'
+                  ? 'border-red-500/30 bg-red-500/10 text-red-200'
+                  : 'border-amber-500/30 bg-amber-500/10 text-amber-200'
+              }`}
+            >
+              <p>
+                {error ?? (connectionState === 'connecting'
+                  ? 'Connecting to live lobby updates...'
+                  : 'Live updates are delayed. You can stay here or retry the connection.')}
+              </p>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => void retry()}
+                className="mt-2 h-7 px-2 text-[11px] text-current hover:bg-background/20"
+              >
+                Retry Connection
+              </Button>
+            </motion.div>
+          )}
         </motion.div>
 
         <motion.div

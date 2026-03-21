@@ -1,3 +1,5 @@
+import type { GameActionEvent } from './logEvents'
+
 export type Suit = 'hearts' | 'diamonds' | 'clubs' | 'spades'
 export type Rank = 'A' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10' | 'J' | 'Q' | 'K'
 
@@ -13,6 +15,7 @@ export type GameStatus = 'lobby' | 'active' | 'ending' | 'finished'
 export interface LogEntry {
   ts: number
   msg: string
+  event?: GameActionEvent | null
 }
 
 // ─── Power effect types ─────────────────────────────────────

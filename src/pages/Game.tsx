@@ -12,6 +12,8 @@ import GameLog from '../components/GameLog'
 import GameModals from '../components/GameModals'
 import VersionLabel from '../components/VersionLabel'
 import TurnQueue from '../components/TurnQueue'
+import GameTopBar from '../components/GameTopBar'
+import { GameErrorScreen, GameKickedScreen, GameLoadingScreen } from '../components/GameStatusScreen'
 import { useActionHighlight } from '../hooks/useActionHighlight'
 import { useFlyingCard } from '../hooks/useFlyingCard'
 import FlyingCard from '../components/FlyingCard'
@@ -48,7 +50,7 @@ import { normalizeLocks } from '../lib/slotState'
 export default function Game() {
   const { gameId } = useParams<{ gameId: string }>()
   const { user } = useAuth()
-  const { game, players, privateState, loading } = useGame(gameId, user?.uid)
+  const { game, players, privateState, loading, error, retry } = useGame(gameId, user?.uid)
   const navigate = useNavigate()
 
   const [drawnCardDismissed, setDrawnCardDismissed] = useState(false)
@@ -315,62 +317,27 @@ export default function Game() {
   )
 
 
-  if (loading || !game || !user) {
+  if (loading || !user) {
+    return <GameLoadingScreen />
+  }
+
+  if (!game) {
     return (
-      <div className="min-h-dvh flex items-center justify-center">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-          className="w-8 h-8 border-2 border-slate-400 border-t-transparent rounded-full"
-        />
-      </div>
+      <GameErrorScreen
+        message={error ?? 'The game is unavailable right now.'}
+        onRetry={() => void retry()}
+        onGoHome={() => navigate('/')}
+      />
     )
   }
 
   if (game.status === 'finished') {
-    return (
-      <div className="min-h-dvh flex items-center justify-center">
-        <div className="text-center">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-            className="w-8 h-8 border-2 border-amber-400 border-t-transparent rounded-full mx-auto mb-4"
-          />
-          <p className="text-amber-300 font-medium">Revealing all cards...</p>
-        </div>
-      </div>
-    )
+    return <GameLoadingScreen message="Revealing all cards..." />
   }
 
   // Kicked player screen — shown when player is removed from playerOrder mid-game (not spectators)
   if (!game.playerOrder.includes(user.uid) && wasPlayer && (game.status === 'active' || game.status === 'ending')) {
-    return (
-      <div
-        className="min-h-dvh flex items-center justify-center p-4"
-        style={{ background: 'radial-gradient(ellipse at center, rgba(220,38,38,0.12) 0%, transparent 70%)' }}
-      >
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ type: 'spring', stiffness: 260, damping: 20 }}
-          className="text-center max-w-sm p-8 rounded-2xl border backdrop-blur-sm"
-          style={{ background: 'var(--surface-solid)', borderColor: 'rgba(220,38,38,0.3)' }}
-        >
-          <div className="text-7xl mb-4">😂</div>
-          <h2 className="text-2xl font-bold text-red-400 mb-2">You've been kicked!</h2>
-          <p className="text-sm mb-6 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-            Welp... who knows what you did to deserve that 🤷<br />
-            The game goes on without you!
-          </p>
-          <button
-            onClick={() => navigate('/')}
-            className="px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold rounded-xl transition-colors"
-          >
-            Go Home
-          </button>
-        </motion.div>
-      </div>
-    )
+    return <GameKickedScreen onGoHome={() => navigate('/')} />
   }
 
   // Selection mode props — passed to all PlayerPanels
@@ -408,136 +375,26 @@ export default function Game() {
       {/* ─── Sticky Top Bar (v1.5 — 3-zone layout) ──────────── */}
       <div
         ref={headerRef}
-        className="sticky top-0 z-50 w-full backdrop-blur-lg border-b"
-        style={{
-          paddingTop: 'env(safe-area-inset-top, 0px)',
-          background: 'color-mix(in srgb, var(--surface-solid) 90%, transparent)',
-          borderColor: 'var(--border)',
-        }}
       >
-        <div className="flex items-center px-3 md:px-5 py-2 min-h-[52px] max-w-5xl mx-auto gap-3">
-          {/* ── LEFT: Title + Room Code + Pile ── */}
-          <div className="flex items-center gap-2 shrink-0 min-w-0">
-            <h1 className="text-base font-bold text-amber-300 leading-none whitespace-nowrap hidden sm:block">Lucky Seven™</h1>
-            <h1 className="text-base font-bold text-amber-300 leading-none whitespace-nowrap sm:hidden">L7</h1>
-            <button
-              onClick={() => { copyToClipboard(game.joinCode); toast.success('Room code copied!') }}
-              className="group relative flex items-center gap-1.5 px-2 py-1 rounded-lg border hover:border-emerald-500/40 transition-colors cursor-pointer"
-              style={{ background: 'var(--panel)', borderColor: 'var(--border)' }}
-              aria-label={`Copy room code ${game.joinCode}`}
-              title="Click to copy room code"
-            >
-              <span className="text-[11px] font-mono font-bold tracking-widest text-emerald-400">{game.joinCode}</span>
-              <svg className="w-3 h-3 text-slate-500 group-hover:text-emerald-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-              <span className="toolbar-tooltip">Copy Code</span>
-            </button>
-            <span className="text-[10px] font-medium whitespace-nowrap" style={{ color: 'var(--text-dim)' }}>
-              {game.drawPileCount} left
-            </span>
-            {game.drawPileCount <= 3 && game.drawPileCount > 0 && (
-              <span className="px-1.5 py-0.5 bg-amber-900/40 border border-amber-600/50 text-amber-300 rounded-md text-[9px] font-bold animate-pulse whitespace-nowrap">
-                FINAL
-              </span>
-            )}
-            {game.drawPileCount === 0 && (
-              <span className="px-1.5 py-0.5 bg-red-900/40 border border-red-600/50 text-red-300 rounded-md text-[9px] font-bold animate-pulse whitespace-nowrap">
-                LAST TURN
-              </span>
-            )}
-          </div>
-
-          {/* ── CENTER: Turn strip (hidden on very small screens) ── */}
-          <div className="flex-1 min-w-0 hidden md:flex justify-center">
-            <TurnQueue
-              playerOrder={game.playerOrder}
-              players={players}
-              currentTurnPlayerId={game.currentTurnPlayerId}
-              localPlayerId={user.uid}
-              compact
-            />
-          </div>
-
-          {/* ── RIGHT: Clean icon cluster ── */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            {isSpectator && (
-              <span className="px-2 py-0.5 bg-violet-900/40 border border-violet-500/40 text-violet-300 text-[10px] font-bold rounded-md">
-                SPECTATING
-              </span>
-            )}
-            {/* Game Monitor — dev only */}
-            {devMode.isDevMode && (
-              <motion.button
-                whileHover={{ scale: 1.08 }}
-                whileTap={{ scale: 0.92 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                onClick={() => setShowMonitor(true)}
-                className="topbar-btn group relative bg-emerald-900/25 border-emerald-600/30 text-emerald-400 hover:bg-emerald-900/40"
-                aria-label="Game Monitor"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="2" y="3" width="20" height="14" rx="2" />
-                  <line x1="8" y1="21" x2="16" y2="21" />
-                  <line x1="12" y1="17" x2="12" y2="21" />
-                </svg>
-                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="toolbar-tooltip">Game Monitor</span>
-              </motion.button>
-            )}
-
-            {/* Settings — opens modal with all options */}
-            <motion.button
-              whileHover={{ scale: 1.08 }}
-              whileTap={{ scale: 0.92 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-              onClick={() => setShowSettings(true)}
-              className="topbar-btn group relative"
-              aria-label="Open settings"
-            >
-              {'\u2699\uFE0F'}
-              <span className="toolbar-tooltip">Settings</span>
-            </motion.button>
-
-            {/* Help / Power Guide */}
-            <motion.button
-              whileHover={{ scale: 1.08 }}
-              whileTap={{ scale: 0.92 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-              onClick={() => setShowPowerGuide(true)}
-              className="topbar-btn group relative bg-amber-900/30 border-amber-600/40 text-amber-400 hover:bg-amber-900/50"
-              aria-label="Power guide — view card power instructions"
-            >
-              ?
-              <span className="toolbar-tooltip">Powers</span>
-            </motion.button>
-
-            {/* Chat */}
-            <motion.button
-              whileHover={{ scale: 1.08 }}
-              whileTap={{ scale: 0.92 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-              onClick={chat.toggleChat}
-              className="topbar-btn group relative bg-indigo-900/30 border-indigo-600/40 text-indigo-400 hover:bg-indigo-900/50"
-              aria-label="Open chat"
-            >
-              {'\u{1F4AC}'}
-              {chat.unreadCount > 0 && (
-                <motion.span
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: 'spring', stiffness: 500, damping: 20 }}
-                  className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center"
-                >
-                  {chat.unreadCount > 9 ? '9+' : chat.unreadCount}
-                </motion.span>
-              )}
-              <span className="toolbar-tooltip">Chat</span>
-            </motion.button>
-
-            {/* End Game button removed — game ends automatically when draw pile is exhausted */}
-          </div>
-        </div>
+        <GameTopBar
+          gameJoinCode={game.joinCode}
+          drawPileCount={game.drawPileCount}
+          isSpectator={isSpectator}
+          isDevMode={devMode.isDevMode}
+          unreadCount={chat.unreadCount}
+          playerOrder={game.playerOrder}
+          players={players}
+          currentTurnPlayerId={game.currentTurnPlayerId}
+          localPlayerId={user.uid}
+          onCopyCode={() => {
+            copyToClipboard(game.joinCode)
+            toast.success('Room code copied!')
+          }}
+          onOpenMonitor={() => setShowMonitor(true)}
+          onOpenSettings={() => setShowSettings(true)}
+          onOpenPowerGuide={() => setShowPowerGuide(true)}
+          onToggleChat={chat.toggleChat}
+        />
       </div>
 
       {/* ─── Safe Layout Stack: banners push content down ────── */}

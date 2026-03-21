@@ -15,8 +15,8 @@
  * - rematch_clicked   — Play Again clicked
  * - feedback_submitted — feedback form submitted
  */
-
-import { supabase } from './supabase'
+import { callRpc } from './supabaseRpc'
+import type { Json } from './supabaseDatabase.generated'
 
 // ─── Session ID — stable per tab/session ─────────────────────
 let sessionId: string | null = null
@@ -83,7 +83,7 @@ async function _sendEvent(
   gameId?: string,
 ): Promise<void> {
   try {
-    await supabase.rpc('track_event', {
+    await callRpc('track_event', {
       p_event_name: eventName,
       p_game_id: gameId ?? null,
       p_session_id: getSessionId(),
@@ -91,7 +91,7 @@ async function _sendEvent(
       p_device_type: getDeviceType(),
       p_screen_width: window.innerWidth,
       p_theme: getTheme(),
-      p_metadata: metadata ?? {},
+      p_metadata: (metadata ?? {}) as Json,
     })
   } catch {
     // Analytics should never break the app — silently drop

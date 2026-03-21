@@ -1,4 +1,4 @@
-export const CURRENT_VERSION = 'v1.0.1'
+export const CURRENT_VERSION = 'v1.0.2'
 
 export interface ReleaseNote {
   version: string
@@ -9,6 +9,37 @@ export interface ReleaseNote {
 
 // ─── Official releases (v1.x.x) ─────────────────────────────
 export const RELEASES: ReleaseNote[] = [
+  {
+    version: 'v1.0.2',
+    title: 'Reliability & Recovery Pass',
+    date: '21 March 2026',
+    sections: [
+      {
+        heading: 'Backend Safety',
+        items: [
+          'Added Docker-backed backend integration coverage for core draw, discard, swap, power, AFK, vote-kick, rematch, and reveal-score flows',
+          'Structured action events now cover more lobby, rematch, vote-kick, and reveal history so the client no longer has to rely on brittle English log parsing',
+          'Backend reveal scoring now matches the documented rules: Jokers score as 10 during hand reveals',
+        ],
+      },
+      {
+        heading: 'Recovery UX',
+        items: [
+          'Lobby reconnect state now surfaces clearer live-update failures with a retry action instead of silently stalling',
+          'Error boundaries now offer in-place retry, reload, and go-home recovery paths',
+          'History loading now exposes retryable failures instead of failing quietly',
+        ],
+      },
+      {
+        heading: 'Maintainability',
+        items: [
+          'Supabase service code was split into focused modules with stronger generated database typing for rows, JSON payloads, and RPC contracts',
+          'Gameplay action state and page chrome were broken into smaller hooks/components for easier maintenance',
+          'CI now validates migration ordering, backend SQL tests, frontend tests, and build safety before deploys',
+        ],
+      },
+    ],
+  },
   {
     version: 'v1.0.1',
     title: 'Sync & Stability Fixes',

@@ -39,7 +39,8 @@ BEGIN
       test_support.card('carol-9', '9', 'hearts'),
       test_support.card('afk-draw', '10', 'clubs'),
       test_support.card('bob-draw', 'J', 'spades'),
-      test_support.card('carol-draw', 'Q', 'diamonds')
+      test_support.card('carol-draw', 'Q', 'diamonds'),
+      test_support.card('reserve-draw', 'K', 'clubs')
     )
   );
 

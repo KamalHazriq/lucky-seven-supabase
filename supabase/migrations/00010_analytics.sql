@@ -80,6 +80,8 @@ $$;
 
 
 -- ─── Update get_global_stats to include new columns ─────────
+DROP FUNCTION IF EXISTS public.get_global_stats();
+
 CREATE OR REPLACE FUNCTION public.get_global_stats()
 RETURNS TABLE (
   games_played   INT,

@@ -92,6 +92,15 @@ AS $$
   WHERE g.id = p_game_id;
 $$;
 
+CREATE OR REPLACE FUNCTION test_support.jsonb_object_length(p_value JSONB)
+RETURNS INT
+LANGUAGE sql
+IMMUTABLE
+AS $$
+  SELECT count(*)::INT
+  FROM jsonb_object_keys(COALESCE(p_value, '{}'::JSONB));
+$$;
+
 CREATE OR REPLACE FUNCTION test_support.history_event_count(
   p_game_id UUID,
   p_kind    TEXT

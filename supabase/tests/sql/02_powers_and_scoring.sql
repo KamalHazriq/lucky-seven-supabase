@@ -64,7 +64,7 @@ BEGIN
 
   SELECT * INTO v_priv FROM public.game_private_state WHERE game_id = v_game_id AND player_id = v_bob;
   PERFORM test_support.assert_true(
-    jsonb_object_length(v_result) = 3,
+    test_support.jsonb_object_length(v_result) = 3,
     'use_peek_all should reveal all unlocked self cards'
   );
   PERFORM test_support.assert_true(v_priv.known->'2'->>'id' = 'bob-6', 'use_peek_all should persist revealed cards in known');
@@ -96,7 +96,7 @@ BEGIN
 
   SELECT * INTO v_priv FROM public.game_private_state WHERE game_id = v_game_id AND player_id = v_bob;
   PERFORM test_support.assert_true(
-    jsonb_object_length(v_result->'cards') = 3,
+    test_support.jsonb_object_length(v_result->'cards') = 3,
     'use_peek_all_opponent should reveal all unlocked opponent cards'
   );
   PERFORM test_support.assert_true(

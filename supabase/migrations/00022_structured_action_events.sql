@@ -99,12 +99,29 @@ CREATE OR REPLACE FUNCTION public._append_game_history(
   p_event   JSONB DEFAULT NULL
 )
 RETURNS VOID
-LANGUAGE sql
+LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = ''
 AS $$
+DECLARE
+  v_effective_ts BIGINT;
+BEGIN
+  SELECT GREATEST(
+    p_ts,
+    COALESCE(
+      (
+        SELECT max(gh.ts) + 1
+        FROM public.game_history gh
+        WHERE gh.game_id = p_game_id
+      ),
+      p_ts
+    )
+  )
+  INTO v_effective_ts;
+
   INSERT INTO public.game_history (game_id, ts, msg, event)
-  VALUES (p_game_id, p_ts, p_msg, p_event);
+  VALUES (p_game_id, v_effective_ts, p_msg, p_event);
+END;
 $$;
 
 
@@ -781,8 +798,9 @@ BEGIN
     UPDATE public.game_private_state
     SET opponent_known = jsonb_set(
       opponent_known,
-      ARRAY[p_target_player::TEXT, p_slot_index::TEXT],
-      v_peeked
+      ARRAY[p_target_player::TEXT],
+      COALESCE(opponent_known->p_target_player::TEXT, '{}'::JSONB)
+        || jsonb_build_object(p_slot_index::TEXT, v_peeked)
     )
     WHERE game_id = p_game_id AND player_id = v_uid;
   END IF;

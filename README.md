@@ -39,12 +39,12 @@ Built by Kamal Hazriq and Imaduddin. Hosted at [luckyseven.site](https://luckyse
 
 ## Latest Patch
 
-### v1.0.2 · Reliability & Recovery Pass · 21 March 2026
+### v1.0.3 · Stability Sweep · 22 March 2026
 
-- Added backend integration coverage for critical SQL gameplay flows including draw, discard, swap, powers, AFK skip, vote-kick, rematch, and reveal scoring
-- Replaced more brittle client-side log parsing with structured action events carried through game history
-- Hardened reconnect and recovery UX in the lobby, history views, and error boundaries
-- Split oversized Supabase/gameplay modules, strengthened generated database typing, and added CI checks for migrations, backend tests, frontend tests, and build safety
+- Fixed route-to-route state leakage so lobby, game, and results screens reset cleanly during redirects, rematches, and room switches
+- Hardened session loading by clearing stale public/private room state before refetch and removing orphaned private hand state immediately
+- Added route-level lazy loading so the app no longer ships one oversized initial bundle to every player, improving first-load stability on slower devices
+- Synced the in-app patch notes, landing-page latest patch summary, and GitHub README for this release
 - No gameplay rules, scoring balance, card mechanics, or intended flow changes in this patch
 
 ## Highlights

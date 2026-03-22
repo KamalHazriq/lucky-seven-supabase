@@ -13,6 +13,7 @@ import StrategyTips from '../components/StrategyTips'
 import { trackEvent } from '../lib/analytics'
 import type { PowerAssignments, PowerEffectType, PowerRankKey, DeckSize, TurnSeconds } from '../lib/types'
 import { DEFAULT_GAME_SETTINGS, ALL_EFFECT_TYPES, DEFAULT_POWER_ASSIGNMENTS } from '../lib/types'
+import { RELEASES } from '../constants/releases'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -80,6 +81,8 @@ export default function Home() {
   const [showSettings, setShowSettings] = useState(false)
   const [showFeedback, setShowFeedback] = useState(false)
   const [showPatchNotes, setShowPatchNotes] = useState(false)
+  const latestRelease = RELEASES[0]
+  const latestHighlights = latestRelease.sections.flatMap((section) => section.items).slice(0, 2)
 
   // Power settings state
   const [assignments, setAssignments] = useState<PowerAssignments>({ ...DEFAULT_POWER_ASSIGNMENTS })
@@ -617,6 +620,32 @@ export default function Home() {
               Send Feedback
             </motion.button>
           </div>
+          <motion.button
+            whileHover={{ scale: 1.01 }}
+            onClick={() => setShowPatchNotes(true)}
+            className="mt-4 w-full rounded-2xl border border-border-subtle bg-surface-panel/60 px-4 py-3 text-left shadow-lg shadow-black/10 transition-colors hover:bg-surface-panel"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-amber-400/70">
+                  Latest Patch
+                </p>
+                <p className="text-sm font-semibold text-foreground">
+                  {latestRelease.version} &middot; {latestRelease.title}
+                </p>
+                <p className="text-[11px] text-muted-foreground">{latestRelease.date}</p>
+              </div>
+              <span className="text-[11px] font-medium text-indigo-300 shrink-0">Open</span>
+            </div>
+            <div className="mt-2 space-y-1.5">
+              {latestHighlights.map((item) => (
+                <div key={item} className="flex items-start gap-2 text-xs text-muted-foreground">
+                  <span className="mt-0.5 text-amber-400">•</span>
+                  <span>{item}</span>
+                </div>
+              ))}
+            </div>
+          </motion.button>
         </motion.div>
 
         {/* Game Statistics */}

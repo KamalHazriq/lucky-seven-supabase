@@ -1,4 +1,4 @@
-export const CURRENT_VERSION = 'v1.0.2'
+export const CURRENT_VERSION = 'v1.0.3'
 
 export interface ReleaseNote {
   version: string
@@ -9,6 +9,34 @@ export interface ReleaseNote {
 
 // ─── Official releases (v1.x.x) ─────────────────────────────
 export const RELEASES: ReleaseNote[] = [
+  {
+    version: 'v1.0.3',
+    title: 'Stability Sweep',
+    date: '22 March 2026',
+    sections: [
+      {
+        heading: 'Session Safety',
+        items: [
+          'Lobby, game, and results screens now remount cleanly when the room changes so redirects, rematches, and manual room switches cannot carry stale state forward',
+          'Game session loading now fully resets public and private state before refetching, and private hand state is cleared immediately if the backing row disappears',
+        ],
+      },
+      {
+        heading: 'Performance',
+        items: [
+          'Home, join, lobby, game, and results routes now lazy-load so the app no longer ships one oversized initial bundle to every player',
+          'The production build no longer emits the previous large-chunk warning, improving first-load resilience on slower devices',
+        ],
+      },
+      {
+        heading: 'Release Notes',
+        items: [
+          'Landing-page patch notes, in-app version labels, and the GitHub README are now aligned for this release',
+          'No gameplay rules, scoring, card mechanics, or balance changes in this patch',
+        ],
+      },
+    ],
+  },
   {
     version: 'v1.0.2',
     title: 'Reliability & Recovery Pass',

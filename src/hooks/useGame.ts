@@ -44,10 +44,8 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...initialState, loading: false }
     case 'beginLoad':
       return {
-        ...state,
+        ...initialState,
         loading: true,
-        error: null,
-        connectionState: 'connecting',
       }
     case 'setGame':
       return { ...state, game: action.game }
@@ -243,6 +241,8 @@ export function useGame(gameId: string | undefined, playerId: string | undefined
     }
     let cancelled = false
 
+    dispatch({ type: 'setPrivateState', privateState: null })
+
     const channel = supabase
       .channel(`game-private:${gameId}:${playerId}`)
       .on(
@@ -255,6 +255,11 @@ export function useGame(gameId: string | undefined, playerId: string | undefined
             // RLS already filters to own row, but double-check
             if (row.player_id === playerId) {
               dispatch({ type: 'setPrivateState', privateState: mapPrivateStateRow(row) })
+            }
+          } else if (payload.eventType === 'DELETE') {
+            const oldRow = payload.old as TableRow<'game_private_state'> | null
+            if (oldRow?.player_id === playerId) {
+              dispatch({ type: 'setPrivateState', privateState: null })
             }
           }
         },

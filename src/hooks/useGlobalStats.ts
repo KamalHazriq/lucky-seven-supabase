@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { incrementVisits, getGlobalStats } from '../lib/supabaseGameService'
 import { trackEvent } from '../lib/analytics'
+import { getSessionStorageItem, setSessionStorageItem } from '../lib/browserStorage'
 
 export interface GlobalStats {
   gamesPlayed: number
@@ -26,8 +27,8 @@ export function useGlobalStats() {
   // Increment total visits + track page view once per session
   const [visitCounted] = useState(() => {
     // Use a session flag so we only count once per tab/session
-    if (sessionStorage.getItem('lucky7_visit_counted')) return false
-    sessionStorage.setItem('lucky7_visit_counted', '1')
+    if (getSessionStorageItem('lucky7_visit_counted')) return false
+    setSessionStorageItem('lucky7_visit_counted', '1')
     return true
   })
 

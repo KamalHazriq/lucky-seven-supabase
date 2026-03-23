@@ -1,10 +1,11 @@
 import { useState, useCallback, useSyncExternalStore } from 'react'
+import { getLocalStorageItem, setLocalStorageItem } from '../lib/browserStorage'
 
 const STORAGE_KEY = 'lucky7_ui_mode'
 export type UiMode = 'modal' | 'actionbar'
 
 function getStoredMode(): UiMode {
-  const v = localStorage.getItem(STORAGE_KEY)
+  const v = getLocalStorageItem(STORAGE_KEY)
   if (v === 'actionbar') return 'actionbar'
   return 'modal'
 }
@@ -31,9 +32,7 @@ export function useUiMode() {
   const [stored, setStoredState] = useState<UiMode>(() => {
     const s = getStoredMode()
     // If no preference stored, default based on viewport
-    if (!localStorage.getItem(STORAGE_KEY)) {
-      return isDesktop ? 'actionbar' : 'modal'
-    }
+    if (!getLocalStorageItem(STORAGE_KEY)) return isDesktop ? 'actionbar' : 'modal'
     return s
   })
 
@@ -41,7 +40,7 @@ export function useUiMode() {
   const uiMode: UiMode = isDesktop ? stored : 'modal'
 
   const setMode = useCallback((mode: UiMode) => {
-    localStorage.setItem(STORAGE_KEY, mode)
+    setLocalStorageItem(STORAGE_KEY, mode)
     setStoredState(mode)
   }, [])
 

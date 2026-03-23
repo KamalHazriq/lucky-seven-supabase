@@ -6,6 +6,16 @@ import type { FunctionArgs, TableRow } from './supabaseDatabase.generated'
 import type { GameSettings } from './types'
 import { mergeGameSettings } from './supabaseGameShared'
 
+const JOIN_CODE_RETRY_LIMIT = 3
+
+function randomJoinCode(): string {
+  return nanoid(6).toUpperCase()
+}
+
+function isJoinCodeConflict(error: unknown): boolean {
+  return (error as Error).message.includes('Join code conflict')
+}
+
 export async function createGame(
   displayName: string,
   maxPlayers: number,
@@ -23,14 +33,17 @@ export async function createGame(
     p_seed: seed,
   })
 
-  try {
-    return await callRpc('create_game', createArgs(nanoid(6).toUpperCase()))
-  } catch (error) {
-    if ((error as Error).message.includes('Join code conflict')) {
-      return await callRpc('create_game', createArgs(nanoid(6).toUpperCase()))
+  for (let attempt = 0; attempt < JOIN_CODE_RETRY_LIMIT; attempt++) {
+    try {
+      return await callRpc('create_game', createArgs(randomJoinCode()))
+    } catch (error) {
+      if (!isJoinCodeConflict(error) || attempt === JOIN_CODE_RETRY_LIMIT - 1) {
+        throw error
+      }
     }
-    throw error
   }
+
+  throw new Error('Unable to reserve a unique join code')
 }
 
 export async function joinGame(
@@ -113,13 +126,26 @@ export async function playAgain(
   colorKey?: number,
 ): Promise<string> {
   await ensureAuth()
-  return await callRpc('play_again', {
+
+  const playAgainArgs = (joinCode: string): FunctionArgs<'play_again'> => ({
     p_finished_game_id: gameId,
     p_display_name: displayName,
     p_max_players: maxPlayers,
     p_settings: mergeGameSettings(settings),
-    p_join_code: nanoid(6).toUpperCase(),
+    p_join_code: joinCode,
     p_seed: nanoid(12),
     p_color_key: colorKey ?? null,
   })
+
+  for (let attempt = 0; attempt < JOIN_CODE_RETRY_LIMIT; attempt++) {
+    try {
+      return await callRpc('play_again', playAgainArgs(randomJoinCode()))
+    } catch (error) {
+      if (!isJoinCodeConflict(error) || attempt === JOIN_CODE_RETRY_LIMIT - 1) {
+        throw error
+      }
+    }
+  }
+
+  throw new Error('Unable to reserve a unique rematch join code')
 }

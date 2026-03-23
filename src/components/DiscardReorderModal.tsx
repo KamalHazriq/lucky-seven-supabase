@@ -1,18 +1,21 @@
 import { useState, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import CardView from './CardView'
+import { getLocalStorageJson, setLocalStorageJson } from '../lib/browserStorage'
 import type { Card } from '../lib/types'
 
 const STORAGE_KEY = 'lucky7_discardreorder_pos'
 
 function loadPos(): { x: number; y: number } {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) {
-      const p = JSON.parse(raw) as { x: number; y: number }
-      if (typeof p.x === 'number' && typeof p.y === 'number') return p
-    }
-  } catch { /* ignore */ }
+  const stored = getLocalStorageJson(
+    STORAGE_KEY,
+    (value): value is { x: number; y: number } =>
+      typeof value === 'object'
+      && value !== null
+      && typeof (value as { x?: unknown }).x === 'number'
+      && typeof (value as { y?: unknown }).y === 'number',
+  )
+  if (stored) return stored
   // Default: centre-bottom of viewport
   return { x: window.innerWidth / 2 - 224, y: window.innerHeight - 520 }
 }
@@ -108,7 +111,7 @@ export default function DrawPileReorderModal({
         y: dragRef.current.origY + me.clientY - dragRef.current.startY,
       }
       setPos(final)
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(final)) } catch { /* ignore */ }
+      setLocalStorageJson(STORAGE_KEY, final)
       dragRef.current = null
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)

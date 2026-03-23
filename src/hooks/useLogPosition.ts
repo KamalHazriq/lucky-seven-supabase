@@ -1,10 +1,11 @@
 import { useState, useCallback, useSyncExternalStore } from 'react'
+import { getLocalStorageItem, setLocalStorageItem } from '../lib/browserStorage'
 
 const STORAGE_KEY = 'lucky7_log_position'
 export type LogPosition = 'bottom' | 'left'
 
 function getStored(): LogPosition {
-  const v = localStorage.getItem(STORAGE_KEY)
+  const v = getLocalStorageItem(STORAGE_KEY)
   if (v === 'left') return 'left'
   return 'bottom'
 }
@@ -34,7 +35,7 @@ export function useLogPosition() {
   const toggle = useCallback(() => {
     if (!canSidebar) return
     const next = stored === 'bottom' ? 'left' : 'bottom'
-    localStorage.setItem(STORAGE_KEY, next)
+    setLocalStorageItem(STORAGE_KEY, next)
     setStored(next)
   }, [stored, canSidebar])
 

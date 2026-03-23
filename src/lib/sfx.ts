@@ -6,18 +6,24 @@
  * Key names match SFX object keys: draw, take, swap, discard, lock, unlock,
  *   peek, peekAll, chaos, kick, endGame, error.
  */
+import { getLocalStorageItem, setLocalStorageItem } from './browserStorage'
+
 let ctx: AudioContext | null = null
 
 function getCtx(): AudioContext | null {
   if (!ctx) {
     try {
-      ctx = new AudioContext()
+      if (typeof window === 'undefined') return null
+      const AudioContextCtor = window.AudioContext
+        ?? (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+      if (!AudioContextCtor) return null
+      ctx = new AudioContextCtor()
     } catch {
       return null
     }
   }
   // Resume after browser autoplay suspension (requires prior user interaction)
-  if (ctx.state === 'suspended') ctx.resume()
+  if (ctx.state === 'suspended') void ctx.resume().catch(() => {})
   return ctx
 }
 
@@ -116,31 +122,31 @@ const PERF_KEY   = 'lucky7_perf_mode'
 const VOL_KEY    = 'lucky7_sfx_volume'
 
 export function isSfxEnabled(): boolean {
-  return localStorage.getItem(SFX_KEY) === 'true'
+  return getLocalStorageItem(SFX_KEY) === 'true'
 }
 
 export function setSfxEnabled(v: boolean) {
-  localStorage.setItem(SFX_KEY, v ? 'true' : 'false')
+  setLocalStorageItem(SFX_KEY, v ? 'true' : 'false')
 }
 
 /** Volume 0–1, default 0.7 */
 export function getSfxVolume(): number {
-  const raw = localStorage.getItem(VOL_KEY)
+  const raw = getLocalStorageItem(VOL_KEY)
   if (raw === null) return 0.7
   const n = parseFloat(raw)
   return Number.isFinite(n) ? Math.max(0, Math.min(1, n)) : 0.7
 }
 
 export function setSfxVolume(v: number) {
-  localStorage.setItem(VOL_KEY, String(Math.max(0, Math.min(1, v))))
+  setLocalStorageItem(VOL_KEY, String(Math.max(0, Math.min(1, v))))
 }
 
 export function isHapticEnabled(): boolean {
-  return localStorage.getItem(HAPTIC_KEY) === 'true'
+  return getLocalStorageItem(HAPTIC_KEY) === 'true'
 }
 
 export function setHapticEnabled(v: boolean) {
-  localStorage.setItem(HAPTIC_KEY, v ? 'true' : 'false')
+  setLocalStorageItem(HAPTIC_KEY, v ? 'true' : 'false')
 }
 
 export function playSfx(name: keyof typeof SFX) {
@@ -154,10 +160,12 @@ export function vibrate(ms = 30) {
 }
 
 export function isPerformanceModeEnabled(): boolean {
-  return localStorage.getItem(PERF_KEY) === 'true'
+  return getLocalStorageItem(PERF_KEY) === 'true'
 }
 
 export function setPerformanceModeEnabled(v: boolean) {
-  localStorage.setItem(PERF_KEY, v ? 'true' : 'false')
-  window.dispatchEvent(new CustomEvent('lucky7_perf_change'))
+  setLocalStorageItem(PERF_KEY, v ? 'true' : 'false')
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('lucky7_perf_change'))
+  }
 }

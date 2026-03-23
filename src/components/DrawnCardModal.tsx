@@ -1,8 +1,9 @@
 import { useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import CardView from './CardView'
-import type { Card, PowerEffectType, PowerRankKey, PowerAssignments, DrawnCardSource } from '../lib/types'
+import type { Card, PowerEffectType, PowerRankKey, PowerAssignments } from '../lib/types'
 import { getCardRankKey, EFFECT_LABELS, DEFAULT_POWER_ASSIGNMENTS } from '../lib/types'
+import type { TurnCardUiSource } from '../lib/turnCardState'
 
 interface DrawnCardModalProps {
   card: Card | null
@@ -13,7 +14,7 @@ interface DrawnCardModalProps {
   /** Player's known cards map (slot index string → Card) */
   knownCards: Record<string, Card>
   /** Where the drawn card came from — hides close button for pile draws */
-  drawnCardSource: DrawnCardSource
+  drawnCardSource: TurnCardUiSource
   onSwap: (slotIndex: number) => void
   onDiscard: () => void
   onUsePower: (rankKey: PowerRankKey, effectType: PowerEffectType) => void
@@ -46,8 +47,11 @@ export default function DrawnCardModal({
   const rankLabel = rankKey === 'JOKER' ? 'Joker' : rankKey
   const isSpent = card ? !!spentPowerCardIds[card.id] : false
   const isUnlockWithNoTargets = effectType === 'unlock_one_locked_card' && !hasAnyLocks
-  const canCancel = drawnCardSource === 'discard'
-  // Treat null source as pile draw (card is committed; can dismiss but not cancel)
+  const isDiscardPreview = drawnCardSource === 'discard-preview'
+  const isDiscardFlow = drawnCardSource === 'discard' || isDiscardPreview
+  const canCancel = isDiscardFlow
+  const canDiscard = drawnCardSource === 'pile'
+  const canUsePower = drawnCardSource === 'pile'
   const isPileDraw = drawnCardSource === 'pile' || drawnCardSource === null
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -96,7 +100,9 @@ export default function DrawnCardModal({
             {/* Screen-reader card description — hidden visually, always up-to-date */}
             {card && (
               <p id="drawn-card-modal-desc" className="sr-only">
-                {`You drew the ${card.isJoker ? 'Joker' : `${card.rank} of ${card.suit}`}. Choose to swap it with one of your cards, discard it${effectInfo ? `, or use its ${effectInfo.label} power` : ''}.`}
+                {isDiscardFlow
+                  ? `You selected the ${card.isJoker ? 'Joker' : `${card.rank} of ${card.suit}`} from discard. Swap it with one of your cards, or cancel and choose again.`
+                  : `You drew the ${card.isJoker ? 'Joker' : `${card.rank} of ${card.suit}`}. Choose to swap it with one of your cards, discard it${effectInfo ? `, or use its ${effectInfo.label} power` : ''}.`}
               </p>
             )}
             {/* Close button — behavior differs by source */}
@@ -123,7 +129,7 @@ export default function DrawnCardModal({
             )}
 
             <h3 id="drawn-card-modal-title" className="text-center text-lg font-semibold mb-4" style={{ color: 'var(--text)' }}>
-              You drew:
+              {isDiscardPreview ? 'Discard selected:' : drawnCardSource === 'discard' ? 'Discard taken:' : 'You drew:'}
             </h3>
 
             <div className="flex justify-center mb-4">
@@ -155,7 +161,11 @@ export default function DrawnCardModal({
 
             <div className="space-y-2">
               <p className="text-xs text-center mb-3" style={{ color: 'var(--text-muted)' }}>
-                Swap with one of your cards, discard{effectInfo ? ', or use its power.' : '.'}
+                {isDiscardFlow
+                  ? isDiscardPreview
+                    ? 'Swap it with one of your cards, or cancel and draw from the pile instead.'
+                    : 'Finish the discard take by swapping it with one of your cards, or cancel it.'
+                  : `Swap with one of your cards, discard${effectInfo ? ', or use its power.' : '.'}`}
               </p>
 
               <div className="flex gap-2 justify-center mb-3">
@@ -175,15 +185,17 @@ export default function DrawnCardModal({
                 ))}
               </div>
 
-              <button
-                onClick={onDiscard}
-                className="w-full py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer border"
-                style={{ background: 'var(--panel)', borderColor: 'var(--border)', color: 'var(--text)' }}
-              >
-                Discard
-              </button>
+              {canDiscard && (
+                <button
+                  onClick={onDiscard}
+                  className="w-full py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer border"
+                  style={{ background: 'var(--panel)', borderColor: 'var(--border)', color: 'var(--text)' }}
+                >
+                  Discard
+                </button>
+              )}
 
-              {effectInfo && rankKey && effectType && (
+              {canUsePower && effectInfo && rankKey && effectType && (
                 <button
                   onClick={() => !isSpent && !isUnlockWithNoTargets && onUsePower(rankKey, effectType)}
                   disabled={isSpent || isUnlockWithNoTargets}
@@ -213,7 +225,7 @@ export default function DrawnCardModal({
                   onClick={onClose}
                   className="w-full py-2 bg-rose-900/30 hover:bg-rose-900/50 border border-rose-700/40 text-rose-300 rounded-lg text-xs font-medium transition-colors cursor-pointer mt-2"
                 >
-                  Cancel Take (return to discard)
+                  {isDiscardPreview ? 'Cancel Pick' : 'Cancel Take (return to discard)'}
                 </button>
               )}
             </div>

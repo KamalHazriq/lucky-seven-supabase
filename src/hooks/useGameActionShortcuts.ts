@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import type { DrawnCardSource } from '../lib/types'
+import type { TurnCardUiSource } from '../lib/turnCardState'
 import type { ModalState } from './gameActionTypes'
 
 interface UseGameActionShortcutsParams {
@@ -9,12 +9,12 @@ interface UseGameActionShortcutsParams {
   isSelecting: boolean
   selectionPhase: 'idle' | 'choosingTarget' | 'choosingSecondTarget' | 'confirming'
   uiMode: 'modal' | 'actionbar'
-  hasDrawnCard: boolean
+  hasActiveCard: boolean
   isActionPhase: boolean
   modalType: ModalState['type']
   drawnCardDismissed: boolean
   myLocks: boolean[]
-  drawnCardSource: DrawnCardSource
+  activeCardSource: TurnCardUiSource
   cardsPerPlayer: number
   onSelectionConfirm: () => void
   onSwap: (slotIndex: number) => void
@@ -28,12 +28,12 @@ export function useGameActionShortcuts({
   isSelecting,
   selectionPhase,
   uiMode,
-  hasDrawnCard,
+  hasActiveCard,
   isActionPhase,
   modalType,
   drawnCardDismissed,
   myLocks,
-  drawnCardSource,
+  activeCardSource,
   cardsPerPlayer,
   onSelectionConfirm,
   onSwap,
@@ -54,7 +54,14 @@ export function useGameActionShortcuts({
         return
       }
 
-      if (uiMode !== 'actionbar' || !hasDrawnCard || !isActionPhase || modalType !== 'none' || drawnCardDismissed) {
+      const isDiscardFlow = activeCardSource === 'discard' || activeCardSource === 'discard-preview'
+      if (
+        uiMode !== 'actionbar'
+        || !hasActiveCard
+        || modalType !== 'none'
+        || (drawnCardDismissed && activeCardSource === 'pile')
+        || (!isActionPhase && !isDiscardFlow)
+      ) {
         return
       }
 
@@ -68,7 +75,7 @@ export function useGameActionShortcuts({
         return
       }
 
-      if (event.key === 'Escape' && drawnCardSource === 'discard') {
+      if (event.key === 'Escape' && isDiscardFlow) {
         event.preventDefault()
         onCancelDraw()
       }
@@ -83,12 +90,12 @@ export function useGameActionShortcuts({
     isSelecting,
     selectionPhase,
     uiMode,
-    hasDrawnCard,
+    hasActiveCard,
     isActionPhase,
     modalType,
     drawnCardDismissed,
     myLocks,
-    drawnCardSource,
+    activeCardSource,
     cardsPerPlayer,
     onSelectionConfirm,
     onSwap,

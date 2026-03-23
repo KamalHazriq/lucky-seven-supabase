@@ -5,15 +5,20 @@ import { Toaster } from 'react-hot-toast'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import App from './App.tsx'
 import ErrorBoundary from './components/ErrorBoundary'
+import { getLocalStorageItem } from './lib/browserStorage'
 import { installGlobalErrorHandlers } from './lib/errorLogger'
 import './index.css'
 
 // Install global error/rejection listeners for crash reporting
 installGlobalErrorHandlers()
 
+const globalFlags = globalThis as typeof globalThis & {
+  __lucky7VisibilitySyncInstalled?: boolean
+}
+
 // Apply stored theme immediately to avoid flash of wrong theme
 {
-  const storedTheme = localStorage.getItem('lucky7_theme')
+  const storedTheme = getLocalStorageItem('lucky7_theme')
   if (storedTheme === 'dark' || storedTheme === 'light') {
     document.documentElement.setAttribute('data-theme', storedTheme)
   }
@@ -29,7 +34,10 @@ function syncPageVisibility() {
   }
 }
 syncPageVisibility() // set immediately on load
-document.addEventListener('visibilitychange', syncPageVisibility)
+if (!globalFlags.__lucky7VisibilitySyncInstalled) {
+  document.addEventListener('visibilitychange', syncPageVisibility)
+  globalFlags.__lucky7VisibilitySyncInstalled = true
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

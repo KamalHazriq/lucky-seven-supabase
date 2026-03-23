@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { getSeatColor } from '../lib/playerColors'
+import { getLocalStorageJson, setLocalStorageJson } from '../lib/browserStorage'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import type { ChatMessage } from '../lib/types'
@@ -13,17 +14,18 @@ const CHAT_POS_KEY = 'lucky7_chat_pos'
 const NEAR_BOTTOM_PX = 60
 
 function loadChatPos(): { x: number; y: number } | null {
-  try {
-    const raw = localStorage.getItem(CHAT_POS_KEY)
-    if (!raw) return null
-    const p = JSON.parse(raw)
-    if (typeof p.x === 'number' && typeof p.y === 'number') return p
-  } catch { /* ignore */ }
-  return null
+  return getLocalStorageJson(
+    CHAT_POS_KEY,
+    (value): value is { x: number; y: number } =>
+      typeof value === 'object'
+      && value !== null
+      && typeof (value as { x?: unknown }).x === 'number'
+      && typeof (value as { y?: unknown }).y === 'number',
+  )
 }
 
 function saveChatPos(x: number, y: number) {
-  localStorage.setItem(CHAT_POS_KEY, JSON.stringify({ x, y }))
+  setLocalStorageJson(CHAT_POS_KEY, { x, y })
 }
 
 interface ChatPanelProps {

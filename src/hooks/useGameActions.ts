@@ -18,6 +18,7 @@ import {
 } from '../lib/supabaseGameService'
 import { playSfx, vibrate } from '../lib/sfx'
 import type { Card, PowerEffectType, PowerRankKey, PrivatePlayerDoc } from '../lib/types'
+import { getTurnCardUiState, type TurnCardUiSource } from '../lib/turnCardState'
 import type { SelectionModeState, SelectedTarget, SelectionConstraint } from './useSelectionMode'
 import type { ModalState } from './gameActionTypes'
 import {
@@ -35,7 +36,6 @@ interface UseGameActionsParams {
   isMyTurn: boolean
   isDrawPhase: boolean
   isActionPhase: boolean
-  hasDrawnCard: boolean
   drawnCard: Card | null
   reduced: boolean
   isDesktop: boolean
@@ -90,6 +90,9 @@ interface UseGameActionsReturn {
   busy: boolean
   modal: ModalState
   setModal: React.Dispatch<React.SetStateAction<ModalState>>
+  activeCard: Card | null
+  activeCardSource: TurnCardUiSource
+  hasActiveCard: boolean
   canDraw: boolean
   canTakeDiscard: boolean
   peekReveal: { slot: number; card: Card } | null
@@ -116,7 +119,7 @@ interface UseGameActionsReturn {
 
 export function useGameActions(params: UseGameActionsParams): UseGameActionsReturn {
   const {
-    gameId, isMyTurn, isDrawPhase, isActionPhase, hasDrawnCard, drawnCard,
+    gameId, isMyTurn, isDrawPhase, isActionPhase, drawnCard,
     reduced, isDesktop, isSpectator, privateState, myLocks,
     uiMode, drawnCardDismissed,
     drawPileRef, discardPileRef, stagingRef, localPanelRef,
@@ -131,10 +134,23 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
   const busyRef = useRef(false)
   const [modal, setModal] = useState<ModalState>({ type: 'none' })
   const [peekReveal, setPeekReveal] = useState<{ slot: number; card: Card } | null>(null)
+  const [localTurnCardOverride, setLocalTurnCardOverride] = useState<{ card: Card; source: TurnCardUiSource } | null>(null)
   const peekTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const canDraw = isDrawPhase && !busy
-  const canTakeDiscard = canDraw && !!discardTop
+  const {
+    activeCard,
+    activeCardSource,
+    hasActiveCard,
+    canDiscard: canDiscardActiveCard,
+    canUsePower: canUsePowerWithActiveCard,
+  } = getTurnCardUiState({
+    drawnCard,
+    drawnCardSource: privateState?.drawnCardSource ?? null,
+    localOverride: localTurnCardOverride,
+  })
+
+  const canDraw = isDrawPhase && !busy && activeCardSource !== 'discard'
+  const canTakeDiscard = canDraw && !!discardTop && activeCardSource !== 'discard-preview'
 
   // Clean up peek timer on unmount
   useEffect(() => {
@@ -179,12 +195,59 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
   // ─── Reconstruct staging on resume/refresh ──────
   useEffect(() => {
     if (!isMyTurn || !privateState) return
+    const serverMatchesCommittedDiscardOverride = localTurnCardOverride?.source === 'discard'
+      ? privateState.drawnCard?.id === localTurnCardOverride.card.id
+        && privateState.drawnCardSource === 'discard'
+      : false
+    if (localTurnCardOverride && !serverMatchesCommittedDiscardOverride) {
+      return
+    }
     reconstructStaging(privateState.drawnCard, privateState.drawnCardSource)
-  }, [isMyTurn, privateState, reconstructStaging])
+  }, [isMyTurn, privateState, reconstructStaging, localTurnCardOverride])
+
+  useEffect(() => {
+    if (!localTurnCardOverride) return
+
+    if (localTurnCardOverride.source === 'discard-preview') {
+      if (!isMyTurn || !isDrawPhase) {
+        setLocalTurnCardOverride(null)
+        return
+      }
+
+      if (!discardTop || discardTop.id !== localTurnCardOverride.card.id) {
+        setLocalTurnCardOverride(null)
+        reconstructStaging(privateState?.drawnCard ?? null, privateState?.drawnCardSource ?? null)
+      }
+      return
+    }
+
+    if (
+      privateState?.drawnCard
+      && privateState.drawnCard.id === localTurnCardOverride.card.id
+      && privateState.drawnCardSource === 'discard'
+    ) {
+      setLocalTurnCardOverride(null)
+      return
+    }
+
+    if (!isMyTurn && !privateState?.drawnCard) {
+      setLocalTurnCardOverride(null)
+    }
+  }, [
+    localTurnCardOverride,
+    isMyTurn,
+    isDrawPhase,
+    discardTop,
+    privateState?.drawnCard,
+    privateState?.drawnCardSource,
+    reconstructStaging,
+  ])
 
   // ─── Card action handlers ──────────────────────
   const handleDrawPile = () => {
     if (!canDraw) return
+    setModal({ type: 'none' })
+    setLocalTurnCardOverride(null)
     const fromEl = drawPileRef.current
     const stagingEl = stagingRef.current
     playSfx('draw')
@@ -203,9 +266,11 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
 
   const handleTakeDiscard = () => {
     if (!canTakeDiscard) return
+    setModal({ type: 'none' })
     const fromEl = discardPileRef.current
     const stagingEl = stagingRef.current
     const discardCard = discardTop
+    if (!discardCard) return
     playSfx('take')
     vibrate()
     if (!reduced && fromEl && stagingEl && discardCard) {
@@ -213,18 +278,30 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
     } else {
       reconstructStaging(discardCard, 'discard')
     }
-    void withBusy(async () => {
-      await takeFromDiscard(gameId!)
-    }, () => {
-      resetChoreo()
-    })
+    setLocalTurnCardOverride({ card: discardCard, source: 'discard-preview' })
   }
 
   const handleCancelDraw = useCallback(() => {
-    const source = privateState?.drawnCardSource
+    const source = activeCardSource
     const stagingEl = stagingRef.current
     const discardEl = discardPileRef.current
-    const stagedCard = choreo.staging.card ?? drawnCard
+    const stagedCard = choreo.staging.card ?? activeCard
+
+    if (source === 'discard-preview') {
+      setModal({ type: 'none' })
+      setLocalTurnCardOverride(null)
+      if (!reduced && stagingEl && discardEl) {
+        startDiscardAction(
+          stagingEl.getBoundingClientRect(),
+          discardEl.getBoundingClientRect(),
+          stagedCard,
+          !!stagedCard,
+        )
+      } else {
+        reconstructStaging(null, null)
+      }
+      return
+    }
 
     if (source === 'discard' && !reduced && stagingEl && discardEl) {
       startDiscardAction(
@@ -239,12 +316,14 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
 
     void withBusy(async () => {
       await cancelDraw(gameId!)
+      setLocalTurnCardOverride(null)
     }, () => {
-      reconstructStaging(stagedCard, source ?? null)
+      reconstructStaging(stagedCard, source === 'discard' ? 'discard' : null)
     })
-  }, [gameId, privateState?.drawnCardSource, reduced, choreo.staging, drawnCard, startDiscardAction, resetChoreo, withBusy, stagingRef, discardPileRef, reconstructStaging])
+  }, [gameId, activeCardSource, reduced, choreo.staging, activeCard, startDiscardAction, resetChoreo, withBusy, stagingRef, discardPileRef, reconstructStaging])
 
   const handleSwap = useCallback((slotIndex: number, fromRect?: DOMRect | null) => {
+    if (!activeCard) return
     setModal({ type: 'none' })
     const stagingEl = stagingRef.current
     const discardEl = discardPileRef.current
@@ -266,14 +345,23 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
       resetChoreo()
     }
 
+    let committedDiscardTake = false
     void withBusy(async () => {
+      if (activeCardSource === 'discard-preview') {
+        await takeFromDiscard(gameId!)
+        committedDiscardTake = true
+        setLocalTurnCardOverride({ card: activeCard, source: 'discard' })
+      }
       await swapWithSlot(gameId!, slotIndex)
+      setLocalTurnCardOverride(null)
     }, () => {
-      reconstructStaging(drawnCard ?? choreo.staging.card, privateState?.drawnCardSource ?? choreo.staging.source ?? null)
+      const fallbackSource = committedDiscardTake ? 'discard' : activeCardSource
+      reconstructStaging(activeCard, fallbackSource === 'pile' ? 'pile' : 'discard')
     })
-  }, [gameId, reduced, getLocalSlotRect, startSwapFromStaging, resetChoreo, withBusy, stagingRef, discardPileRef, drawnCard, choreo.staging, privateState?.drawnCardSource, privateState?.hand, reconstructStaging])
+  }, [gameId, reduced, getLocalSlotRect, startSwapFromStaging, resetChoreo, withBusy, stagingRef, discardPileRef, activeCard, activeCardSource, privateState?.hand, reconstructStaging])
 
   const handleDiscard = (fromRect?: DOMRect | null) => {
+    if (!activeCard || !canDiscardActiveCard) return
     setModal({ type: 'none' })
     const stagingEl = stagingRef.current
     const localEl = localPanelRef.current
@@ -282,7 +370,7 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
       ?? stagingEl?.getBoundingClientRect()
       ?? localEl?.getBoundingClientRect()
       ?? null
-    const flightCard = choreo.staging.card ?? drawnCard
+    const flightCard = choreo.staging.card ?? activeCard
     const flightFaceUp = choreo.staging.faceUp || !!flightCard
 
     playSfx('discard')
@@ -304,7 +392,7 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
     void withBusy(async () => {
       await discardDrawn(gameId!)
     }, () => {
-      reconstructStaging(flightCard, privateState?.drawnCardSource ?? choreo.staging.source ?? null)
+      reconstructStaging(flightCard, activeCardSource === 'pile' ? 'pile' : choreo.staging.source ?? null)
     })
   }
 
@@ -312,6 +400,7 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
 
   // ─── Power handlers ────────────────────────────
   const handleUsePower = (rankKey: PowerRankKey, effectType: PowerEffectType) => {
+    if (!canUsePowerWithActiveCard) return
     // If peek power with opponent peek enabled, show choice first
     const isPeek = effectType === 'peek_one_of_your_cards' || effectType === 'peek_all_three_of_your_cards'
     if (isPeek && peekAllowsOpponent) {
@@ -563,12 +652,12 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
     isSelecting,
     selectionPhase: selection.phase,
     uiMode,
-    hasDrawnCard,
+    hasActiveCard,
     isActionPhase,
     modalType: modal.type,
     drawnCardDismissed,
     myLocks,
-    drawnCardSource: privateState?.drawnCardSource ?? null,
+    activeCardSource,
     cardsPerPlayer,
     onSelectionConfirm: handleSelectionConfirm,
     onSwap: handleSwap,
@@ -579,6 +668,9 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
     busy,
     modal,
     setModal,
+    activeCard,
+    activeCardSource,
+    hasActiveCard,
     canDraw,
     canTakeDiscard,
     peekReveal,

@@ -226,14 +226,14 @@ export default function Game() {
 
   // All game action handlers, busy/modal state, keyboard shortcuts
   const {
-    busy, modal, setModal, canDraw, canTakeDiscard, peekReveal,
+    busy, modal, setModal, activeCard, activeCardSource, hasActiveCard, canDraw, canTakeDiscard, peekReveal,
     handleDrawPile, handleTakeDiscard, handleCancelDraw, handleSwap, handleDiscard,
     handleUsePower, handleSelectionConfirm, handleSelectionClick,
     handlePlayerSelect, handlePeekSelect, handleSwapConfirm, handleLockSelect,
     handleUnlockSelect, handleRearrangeSelect, handlePeekOpponentSelect, handlePeekAllOpponentSelect,
     handlePeekChoiceSelf, handlePeekChoiceOpponent, handleCancelPower,
   } = useGameActions({
-    gameId, isMyTurn, isDrawPhase, isActionPhase, hasDrawnCard, drawnCard,
+    gameId, isMyTurn, isDrawPhase, isActionPhase, drawnCard,
     reduced, isDesktop, isSpectator, privateState: privateState ?? null,
     myLocks, uiMode, drawnCardDismissed,
     drawPileRef, discardPileRef, stagingRef, localPanelRef,
@@ -248,9 +248,14 @@ export default function Game() {
     cardsPerPlayer,
   })
 
-  const stagingInteractive = stagingActive && isMyTurn && hasDrawnCard && modal.type === 'none' && !isSelecting
+  const isDiscardFlow = activeCardSource === 'discard' || activeCardSource === 'discard-preview'
+  const canResolveActiveCard = isMyTurn && (isActionPhase || isDiscardFlow)
+  const canDropToDiscard = activeCardSource === 'pile'
+  const hideLocalDiscardTop = isDiscardFlow || privateState?.drawnCardSource === 'discard'
+  const stagingInteractive = stagingActive && isMyTurn && hasActiveCard && modal.type === 'none' && !isSelecting
   const { dropTarget, resolveDropTarget, updateDropTarget, clearDropTarget } = useStagedCardDrop({
     enabled: stagingInteractive,
+    allowDiscardTarget: canDropToDiscard,
     lockedSlots: myLocks,
     localPanelRef,
     discardPileRef,
@@ -269,18 +274,24 @@ export default function Game() {
     clearDropTarget()
     if (!stagingInteractive || !target) return
 
-    if (target.kind === 'discard') {
+    if (target.kind === 'discard' && canDropToDiscard) {
       handleDiscard(sourceRect)
       return
     }
 
-    handleSwap(target.slotIndex, sourceRect)
-  }, [clearDropTarget, handleDiscard, handleSwap, resolveDropTarget, stagingInteractive])
+    if (target.kind === 'slot') {
+      handleSwap(target.slotIndex, sourceRect)
+    }
+  }, [canDropToDiscard, clearDropTarget, handleDiscard, handleSwap, resolveDropTarget, stagingInteractive])
 
   const stagingDropHint = dropTarget?.kind === 'discard'
     ? 'Release to discard'
     : dropTarget?.kind === 'slot'
       ? `Release on slot #${dropTarget.slotIndex + 1}`
+      : activeCardSource === 'discard-preview'
+        ? 'Release on a slot to take it'
+        : activeCardSource === 'discard'
+          ? 'Release on a slot to finish the discard take'
       : null
 
   const localSlotOverlays = useMemo(() => {
@@ -362,7 +373,7 @@ export default function Game() {
       onDragMove={stagingInteractive ? handleStagingDragMove : undefined}
       onDragEnd={stagingInteractive ? handleStagingDragEnd : undefined}
       onDragCancel={clearDropTarget}
-      onResolve={hasDrawnCard && isMyTurn && (drawnCardDismissed || modal.type !== 'none') && !isSelecting
+      onResolve={hasActiveCard && isMyTurn && (((drawnCardDismissed && activeCardSource === 'pile') || modal.type !== 'none')) && !isSelecting
         ? () => { setModal({ type: 'none' }); setDrawnCardDismissed(false) }
         : undefined}
     />
@@ -491,9 +502,13 @@ export default function Game() {
                 <span className="inline-block w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: curColor.solid }} />
               ) : null}
               {isMyTurn ? (
-                isDrawPhase
-                  ? 'Your turn \u2014 draw from the pile or discard'
-                  : hasDrawnCard ? 'Choose: swap a card, discard, or use a power' : 'Swap, discard, or use a power'
+                isDiscardFlow
+                  ? activeCardSource === 'discard-preview'
+                    ? 'Discard selected \u2014 swap it into a slot or cancel to draw from the pile'
+                    : 'Discard taken \u2014 swap it into a slot or cancel the take'
+                  : isDrawPhase
+                    ? 'Your turn \u2014 draw from the pile or discard'
+                    : hasActiveCard ? 'Choose: swap a card, discard, or use a power' : 'Swap, discard, or use a power'
               ) : (
                 `Waiting for ${currentTurnName}...`
               )}
@@ -550,7 +565,7 @@ export default function Game() {
                       : undefined}
                   >
                     <p className="text-[10px] text-muted-foreground mb-1">Discard</p>
-                    {game.discardTop && privateState?.drawnCardSource !== 'discard' ? (
+                    {game.discardTop && !hideLocalDiscardTop ? (
                       <div className="relative">
                         <CardView
                           card={game.discardTop}
@@ -641,8 +656,8 @@ export default function Game() {
                     connected
                     locks={myLocks}
                     lockedBy={myPlayer?.lockedBy}
-                    onSlotClick={isActionPhase ? handleSwap : undefined}
-                    slotClickable={isActionPhase && hasDrawnCard && modal.type === 'none' && !isSelecting}
+                    onSlotClick={canResolveActiveCard ? handleSwap : undefined}
+                    slotClickable={canResolveActiveCard && hasActiveCard && modal.type === 'none' && !isSelecting}
                     actionHighlight={actionHighlights[user.uid] ?? null}
                     queueNumber={queueNumbers[user.uid] ?? null}
                     slotOverlays={localSlotOverlays}
@@ -664,12 +679,12 @@ export default function Game() {
               {!isSpectator && uiMode === 'actionbar' && (
                 <div className="mx-auto mb-4 mt-2" style={{ maxWidth: cardsPerPlayer >= 4 ? '460px' : '380px', width: '90%' }}>
                   <ActionBar
-                    card={isMyTurn && hasDrawnCard ? drawnCard : null}
-                    visible={modal.type === 'none' && !drawnCardDismissed}
+                    card={isMyTurn && hasActiveCard ? activeCard : null}
+                    visible={modal.type === 'none' && (!drawnCardDismissed || activeCardSource !== 'pile')}
                     locks={myLocks}
                     powerAssignments={powerAssignments}
                     spentPowerCardIds={spentPowerCardIds}
-                    drawnCardSource={privateState?.drawnCardSource ?? null}
+                    drawnCardSource={activeCardSource}
                     onSwap={handleSwap}
                     onDiscard={handleDiscard}
                     onUsePower={handleUsePower}
@@ -765,7 +780,7 @@ export default function Game() {
                   : undefined}
               >
                 <p className="text-xs text-muted-foreground mb-2">Discard</p>
-                {game.discardTop && privateState?.drawnCardSource !== 'discard' ? (
+                {game.discardTop && !hideLocalDiscardTop ? (
                   <div className="relative">
                     <CardView
                       card={game.discardTop}
@@ -803,8 +818,8 @@ export default function Game() {
                 connected
                 locks={myLocks}
                 lockedBy={myPlayer?.lockedBy}
-                onSlotClick={isActionPhase ? handleSwap : undefined}
-                slotClickable={isActionPhase && hasDrawnCard && modal.type === 'none' && !isSelecting}
+                onSlotClick={canResolveActiveCard ? handleSwap : undefined}
+                slotClickable={canResolveActiveCard && hasActiveCard && modal.type === 'none' && !isSelecting}
                 actionHighlight={actionHighlights[user.uid] ?? null}
                 queueNumber={queueNumbers[user.uid] ?? null}
                 slotOverlays={localSlotOverlays}
@@ -822,12 +837,12 @@ export default function Game() {
               {/* Action Bar — inline alternative to drawn card modal */}
               {!isSpectator && uiMode === 'actionbar' && (
                 <ActionBar
-                  card={isMyTurn && hasDrawnCard ? drawnCard : null}
-                  visible={modal.type === 'none' && !drawnCardDismissed}
+                  card={isMyTurn && hasActiveCard ? activeCard : null}
+                  visible={modal.type === 'none' && (!drawnCardDismissed || activeCardSource !== 'pile')}
                   locks={myLocks}
                   powerAssignments={powerAssignments}
                   spentPowerCardIds={spentPowerCardIds}
-                  drawnCardSource={privateState?.drawnCardSource ?? null}
+                  drawnCardSource={activeCardSource}
                   onSwap={handleSwap}
                   onDiscard={handleDiscard}
                   onUsePower={handleUsePower}
@@ -875,13 +890,13 @@ export default function Game() {
         localPlayerId={user.uid}
         modalPlayerOrder={modalPlayerOrder}
         isMyTurn={isMyTurn}
-        hasDrawnCard={hasDrawnCard}
-        drawnCard={drawnCard}
+        hasDrawnCard={hasActiveCard}
+        drawnCard={activeCard}
         myLocks={myLocks}
         myKnown={myKnown}
         powerAssignments={powerAssignments}
         spentPowerCardIds={spentPowerCardIds}
-        drawnCardSource={privateState?.drawnCardSource ?? null}
+        drawnCardSource={activeCardSource}
         hasAnyLocks={hasAnyLocks}
         uiMode={uiMode}
         drawnCardDismissed={drawnCardDismissed}

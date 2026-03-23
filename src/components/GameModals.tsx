@@ -13,8 +13,9 @@ import SettingsModal from './SettingsModal'
 import DevModeModal from './DevModeModal'
 import DevPanel from './DevPanel'
 import type { ModalState } from '../hooks/gameActionTypes'
-import type { Card, GameDoc, PlayerDoc, PowerEffectType, PowerRankKey, DrawnCardSource, DevPrivileges, PrivatePlayerDoc } from '../lib/types'
+import type { Card, GameDoc, PlayerDoc, PowerEffectType, PowerRankKey, DevPrivileges, PrivatePlayerDoc } from '../lib/types'
 import type { DEFAULT_GAME_SETTINGS } from '../lib/types'
+import type { TurnCardUiSource } from '../lib/turnCardState'
 import { createDefaultLocks } from '../lib/slotState'
 
 interface GameModalsProps {
@@ -36,7 +37,7 @@ interface GameModalsProps {
   myKnown: Record<string, Card>
   powerAssignments: typeof DEFAULT_GAME_SETTINGS.powerAssignments
   spentPowerCardIds: Record<string, boolean>
-  drawnCardSource: DrawnCardSource
+  drawnCardSource: TurnCardUiSource
   hasAnyLocks: boolean
   uiMode: 'modal' | 'actionbar'
   drawnCardDismissed: boolean
@@ -120,7 +121,7 @@ export default function GameModals({
       {/* Drawn Card Modal (main action chooser) — only in modal UI mode */}
       <DrawnCardModal
         card={uiMode === 'modal' && isMyTurn && hasDrawnCard ? drawnCard : null}
-        open={modal.type === 'none' && !drawnCardDismissed}
+        open={modal.type === 'none' && (!drawnCardDismissed || drawnCardSource !== 'pile')}
         locks={myLocks}
         powerAssignments={powerAssignments}
         spentPowerCardIds={spentPowerCardIds}

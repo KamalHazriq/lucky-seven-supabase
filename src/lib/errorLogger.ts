@@ -7,6 +7,7 @@
  * - Uses current session if available (no forced auth)
  */
 import { callRpc } from './supabaseRpc'
+import { getSessionStorageItem } from './browserStorage'
 
 // ─── Dedup + rate-limit state ────────────────────────────────
 const recentErrors = new Map<string, number>()
@@ -14,13 +15,17 @@ const DEDUP_MS = 10_000
 let errorCountThisMinute = 0
 let minuteResetTimer: ReturnType<typeof setTimeout> | null = null
 const MAX_PER_MINUTE = 10
+const globalFlags = globalThis as typeof globalThis & {
+  __lucky7ErrorHandlersInstalled?: boolean
+}
 
 // ─── Helpers ─────────────────────────────────────────────────
 function getSessionId(): string {
-  return sessionStorage.getItem('lucky7_session_id') ?? 'unknown'
+  return getSessionStorageItem('lucky7_session_id') ?? 'unknown'
 }
 
 function getDeviceType(): string {
+  if (typeof window === 'undefined') return 'unknown'
   const w = window.innerWidth
   if (w < 768) return 'mobile'
   if (w < 1024) return 'tablet'
@@ -28,6 +33,7 @@ function getDeviceType(): string {
 }
 
 function getRoute(): string {
+  if (typeof window === 'undefined') return '/'
   return window.location.hash.replace('#', '') || '/'
 }
 
@@ -99,6 +105,10 @@ async function _sendError(err: Error, context?: string): Promise<void> {
  * Call once at app startup.
  */
 export function installGlobalErrorHandlers(): void {
+  if (typeof window === 'undefined') return
+  if (globalFlags.__lucky7ErrorHandlersInstalled) return
+  globalFlags.__lucky7ErrorHandlersInstalled = true
+
   window.addEventListener('error', (e) => {
     logClientError(e.error ?? e.message, 'window.onerror')
   })

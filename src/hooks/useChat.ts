@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import toast from 'react-hot-toast'
 import { supabase, ensureAuth } from '../lib/supabase'
+import { getLocalStorageItem, setLocalStorageItem } from '../lib/browserStorage'
 import { sendChatMessage } from '../lib/supabaseGameService'
 import { mapChatRow } from '../lib/supabaseMappers'
 import type { TableRow } from '../lib/supabaseDatabase.generated'
@@ -15,7 +16,7 @@ function getIsMobile(): boolean {
 }
 
 function getStoredPref(): boolean | null {
-  const v = localStorage.getItem(STORAGE_KEY)
+  const v = getLocalStorageItem(STORAGE_KEY)
   if (v === 'true') return true
   if (v === 'false') return false
   return null
@@ -80,25 +81,28 @@ export function useChat(
         },
       )
 
-    ensureAuth().then(() => {
-      if (cancelled) return
+    ensureAuth()
+      .then(async () => {
+        if (cancelled) return
 
-      channel.subscribe()
+        channel.subscribe()
 
-      // Initial fetch (newest 50, reversed for chronological display)
-      supabase
-        .from('game_chat_messages')
-        .select('*')
-        .eq('game_id', gameId)
-        .order('ts', { ascending: false })
-        .limit(CHAT_MAX)
-        .then(({ data }) => {
-          const rows = (data ?? []) as TableRow<'game_chat_messages'>[]
-          if (cancelled || rows.length === 0) return
-          const msgs = rows.map(mapChatRow).reverse()
-          setMessages(msgs)
-        })
-    })
+        // Initial fetch (newest 50, reversed for chronological display)
+        const { data } = await supabase
+          .from('game_chat_messages')
+          .select('*')
+          .eq('game_id', gameId)
+          .order('ts', { ascending: false })
+          .limit(CHAT_MAX)
+
+        const rows = (data ?? []) as TableRow<'game_chat_messages'>[]
+        if (cancelled || rows.length === 0) return
+        const msgs = rows.map(mapChatRow).reverse()
+        setMessages(msgs)
+      })
+      .catch(() => {
+        if (!cancelled) setSubscribed(false)
+      })
 
     return () => {
       cancelled = true
@@ -110,12 +114,12 @@ export function useChat(
     setSubscribed(true)
     setIsOpen(true)
     setUnreadCount(0)
-    localStorage.setItem(STORAGE_KEY, 'true')
+    setLocalStorageItem(STORAGE_KEY, 'true')
   }, [])
 
   const closeChat = useCallback(() => {
     setIsOpen(false)
-    localStorage.setItem(STORAGE_KEY, 'false')
+    setLocalStorageItem(STORAGE_KEY, 'false')
     if (getIsMobile()) {
       setSubscribed(false)
     }

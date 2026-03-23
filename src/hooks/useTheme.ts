@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { getLocalStorageItem, setLocalStorageItem } from '../lib/browserStorage'
 
 export type Theme = 'blue' | 'dark' | 'light'
 
@@ -6,7 +7,7 @@ const STORAGE_KEY = 'lucky7_theme'
 const VALID_THEMES: Theme[] = ['blue', 'dark', 'light']
 
 function getStoredTheme(): Theme {
-  const stored = localStorage.getItem(STORAGE_KEY)
+  const stored = getLocalStorageItem(STORAGE_KEY)
   if (stored && VALID_THEMES.includes(stored as Theme)) return stored as Theme
   return 'blue'
 }
@@ -29,7 +30,7 @@ export function useTheme() {
   }, [theme])
 
   const setTheme = useCallback((t: Theme) => {
-    localStorage.setItem(STORAGE_KEY, t)
+    setLocalStorageItem(STORAGE_KEY, t)
     setThemeState(t)
   }, [])
 

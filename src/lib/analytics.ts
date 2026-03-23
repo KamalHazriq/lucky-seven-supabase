@@ -16,6 +16,7 @@
  * - feedback_submitted — feedback form submitted
  */
 import { callRpc } from './supabaseRpc'
+import { getSessionStorageItem, setSessionStorageItem } from './browserStorage'
 import type { Json } from './supabaseDatabase.generated'
 
 // ─── Session ID — stable per tab/session ─────────────────────
@@ -23,10 +24,10 @@ let sessionId: string | null = null
 
 function getSessionId(): string {
   if (!sessionId) {
-    sessionId = sessionStorage.getItem('lucky7_session_id')
+    sessionId = getSessionStorageItem('lucky7_session_id')
     if (!sessionId) {
       sessionId = crypto.randomUUID()
-      sessionStorage.setItem('lucky7_session_id', sessionId)
+      setSessionStorageItem('lucky7_session_id', sessionId)
     }
   }
   return sessionId
@@ -34,6 +35,7 @@ function getSessionId(): string {
 
 // ─── Device/context helpers ──────────────────────────────────
 function getDeviceType(): string {
+  if (typeof window === 'undefined') return 'unknown'
   const w = window.innerWidth
   if (w < 768) return 'mobile'
   if (w < 1024) return 'tablet'
@@ -41,10 +43,12 @@ function getDeviceType(): string {
 }
 
 function getTheme(): string {
+  if (typeof document === 'undefined') return 'blue'
   return document.documentElement.getAttribute('data-theme') ?? 'blue'
 }
 
 function getRoute(): string {
+  if (typeof window === 'undefined') return '/'
   return window.location.hash.replace('#', '') || '/'
 }
 
@@ -89,7 +93,7 @@ async function _sendEvent(
       p_session_id: getSessionId(),
       p_route: getRoute(),
       p_device_type: getDeviceType(),
-      p_screen_width: window.innerWidth,
+      p_screen_width: typeof window === 'undefined' ? 0 : window.innerWidth,
       p_theme: getTheme(),
       p_metadata: (metadata ?? {}) as Json,
     })

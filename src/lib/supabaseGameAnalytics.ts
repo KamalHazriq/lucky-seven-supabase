@@ -31,7 +31,9 @@ export async function writeGameSummary(
       p_settings: game.settings,
     })
   } catch (error) {
-    console.error('Analytics write failed (non-critical):', error)
+    if (import.meta.env.DEV) {
+      console.warn('Analytics write failed (non-critical):', error)
+    }
   }
 }
 
@@ -50,7 +52,9 @@ export async function incrementVisits(): Promise<void> {
   try {
     await callRpc('increment_visits', {})
   } catch (error) {
-    console.error('Visit increment failed:', (error as Error).message)
+    if (import.meta.env.DEV) {
+      console.warn('Visit increment failed:', (error as Error).message)
+    }
   }
 }
 

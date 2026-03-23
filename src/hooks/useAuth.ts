@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase, ensureAuth } from '../lib/supabase'
+import { logClientError } from '../lib/errorLogger'
 
 /** Lightweight user shape compatible with existing components (user.uid). */
 interface AuthUser {
@@ -24,7 +25,9 @@ export function useAuth() {
     )
 
     // Trigger anonymous sign-in if no session exists
-    ensureAuth().catch(console.error)
+    ensureAuth().catch((error) => {
+      logClientError(error, 'useAuth.ensureAuth')
+    })
 
     return () => subscription.unsubscribe()
   }, [])

@@ -72,9 +72,9 @@ function CardView({
   const [showTooltip, setShowTooltip] = useState(false)
   const [showRevealFlash, setShowRevealFlash] = useState(false)
   const [revealFlashKey, setRevealFlashKey] = useState(0)
+  const [prevLocked, setPrevLocked] = useState(locked)
   const lockerName = lockInfo?.lockerName
   const prevShowFaceRef = useRef(!!showFace)
-  const prevLockedRef = useRef(locked)
   const mountedRef = useRef(false)
 
   const faceDownFrameStyle = useMemo(() => {
@@ -131,7 +131,7 @@ function CardView({
   }, [showFace])
 
   useEffect(() => {
-    prevLockedRef.current = locked
+    setPrevLocked(locked)
   }, [locked])
 
   // ─── Font sizes per card size ───
@@ -141,7 +141,7 @@ function CardView({
   const isFaceCard = card && !card.isJoker && (card.rank === 'J' || card.rank === 'Q' || card.rank === 'K')
   const cornerTop = size === 'lg' ? '3px' : '2px'
   const cornerLeft = size === 'lg' ? '4px' : '3px'
-  const shouldAnimateLockEntrance = mountedRef.current && locked && !prevLockedRef.current
+  const shouldAnimateLockEntrance = locked && !prevLocked
 
   return (
     <motion.div

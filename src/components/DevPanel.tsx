@@ -1,11 +1,16 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import CardView from './CardView'
+import { getLocalStorageJson, setLocalStorageJson } from '../lib/browserStorage'
 import type { DevPrivileges, PrivatePlayerDoc, Card, GameDoc, PlayerDoc } from '../lib/types'
 import { getPlayerColor } from '../lib/playerColors'
 
 const STORAGE_KEY = 'lucky7_devpanel_pos'
-const DEFAULT_POS = { x: window.innerWidth - 376, y: 80 }
+
+function getDefaultPos() {
+  const width = typeof window === 'undefined' ? 1280 : window.innerWidth
+  return { x: Math.max(0, width - 376), y: 80 }
+}
 
 function clampPos(x: number, y: number, w = 360, h = 500) {
   return {
@@ -15,16 +20,15 @@ function clampPos(x: number, y: number, w = 360, h = 500) {
 }
 
 function loadPos() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) {
-      const p = JSON.parse(raw)
-      if (typeof p.x === 'number' && typeof p.y === 'number') {
-        return clampPos(p.x, p.y)
-      }
-    }
-  } catch { /* ignore */ }
-  return DEFAULT_POS
+  const stored = getLocalStorageJson(
+    STORAGE_KEY,
+    (value): value is { x: number; y: number } =>
+      typeof value === 'object'
+      && value !== null
+      && typeof (value as { x?: unknown }).x === 'number'
+      && typeof (value as { y?: unknown }).y === 'number',
+  )
+  return stored ? clampPos(stored.x, stored.y) : getDefaultPos()
 }
 
 interface DevPanelProps {
@@ -89,7 +93,7 @@ export default function DevPanel({
     const onUp = () => {
       setPos((p) => {
         const clamped = clampPos(p.x, p.y)
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(clamped))
+        setLocalStorageJson(STORAGE_KEY, clamped)
         return clamped
       })
       dragState.current = null

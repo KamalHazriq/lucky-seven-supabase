@@ -96,9 +96,8 @@ export function useTurnTimer(
     skipFiredRef.current = true
     try {
       await skipTurn(gameId, actionVersion)
-    } catch (e) {
-      // Expected: another client may have already skipped
-      console.debug('Auto-skip contention (expected):', e)
+    } catch {
+      // Expected: another client may have already skipped first.
     }
   }, [gameId, actionVersion, turnStartAt, turnSeconds, voteKickActive])
 

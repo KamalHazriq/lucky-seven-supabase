@@ -39,13 +39,15 @@ Built by Kamal Hazriq and Imaduddin. Hosted at [luckyseven.site](https://luckyse
 
 ## Latest Patch
 
-### v1.0.3 · Stability Sweep · 22 March 2026
+### v1.0.4 · King Lock Polish & Hardening Pass · 24 March 2026
 
-- Fixed route-to-route state leakage so lobby, game, and results screens reset cleanly during redirects, rematches, and room switches
-- Hardened session loading by clearing stale public/private room state before refetch and removing orphaned private hand state immediately
-- Added route-level lazy loading so the app no longer ships one oversized initial bundle to every player, improving first-load stability on slower devices
-- Synced the in-app patch notes, landing-page latest patch summary, and GitHub README for this release
-- No gameplay rules, scoring balance, card mechanics, or intended flow changes in this patch
+- Replaced the old lock marker with a premium King-on-top lock visual, including theme-aware polish and cleaner unlock motion
+- Fixed discard-pile turn flow so selecting the top discard card is now a reversible preview, while pile draws remain the committed path for the turn
+- Deduplicated anonymous auth startup and hardened background realtime/setup flows so unstable connections are less likely to cause noisy failures or auth races
+- Added guarded browser-storage helpers across startup, chat, audio, layout, analytics, and dev tooling to avoid crashes when local or session storage is blocked
+- Added retry protection for rare join-code collisions during create-game and rematch flows
+- Added focused tests for turn-card UI state and shared browser-storage behavior, and synced the in-app patch notes, version labels, and GitHub README for this release
+- No scoring, balance, power assignments, lock rules, or core gameplay identity changes in this patch
 
 ## Highlights
 
@@ -64,7 +66,7 @@ Built by Kamal Hazriq and Imaduddin. Hosted at [luckyseven.site](https://luckyse
 - Goal: finish with the lowest hand total
 - Hand size: 3 or 4 face-down cards depending on lobby settings
 - Special scoring rule: 7s are worth 0
-- Turn flow: draw from the draw pile or discard pile, then swap, discard, or use a power
+- Turn flow: draw from the pile to commit, or preview the top discard before deciding; finish by swapping, discarding a pile draw, or using a power from a pile draw
 - End condition: when the draw pile is exhausted, all hands are revealed and scored
 - Tiebreaker: the player with more 7s wins if totals are tied
 

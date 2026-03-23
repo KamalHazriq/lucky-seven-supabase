@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import { useAuth } from '../hooks/useAuth'
 import { useGame } from '../hooks/useGame'
 import { findGameByCode, joinGame } from '../lib/supabaseGameService'
+import { getLocalStorageItem, setLocalStorageItem } from '../lib/browserStorage'
 import { LOBBY_COLORS } from '../lib/playerColors'
 import { trackEvent } from '../lib/analytics'
 import type { PlayerDoc } from '../lib/types'
@@ -39,7 +40,7 @@ export default function Join() {
 
   // Form state
   const [name, setName] = useState(
-    () => localStorage.getItem('lucky7_playerName') ?? '',
+    () => getLocalStorageItem('lucky7_playerName') ?? '',
   )
   const [selectedColor, setSelectedColor] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
@@ -105,7 +106,7 @@ export default function Join() {
     try {
       await joinGame(gameId, name.trim(), selectedColor ?? undefined)
       trackEvent('join_game', { invite_link: true }, gameId)
-      localStorage.setItem('lucky7_playerName', name.trim())
+      setLocalStorageItem('lucky7_playerName', name.trim())
       navigate(`/lobby/${gameId}`, { replace: true })
     } catch (e) {
       toast.error((e as Error).message)

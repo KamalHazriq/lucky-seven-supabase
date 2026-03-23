@@ -1,10 +1,11 @@
 import { useState, useCallback, useSyncExternalStore } from 'react'
+import { getLocalStorageItem, setLocalStorageItem } from '../lib/browserStorage'
 
 const STORAGE_KEY = 'lucky7_layout'
 export type LayoutMode = 'classic' | 'table'
 
 function getStoredLayout(): LayoutMode {
-  const v = localStorage.getItem(STORAGE_KEY)
+  const v = getLocalStorageItem(STORAGE_KEY)
   if (v === 'table') return 'table'
   return 'classic'
 }
@@ -29,7 +30,7 @@ export function useLayout() {
   const isMobile = !isDesktop
 
   const setLayout = useCallback((mode: LayoutMode) => {
-    localStorage.setItem(STORAGE_KEY, mode)
+    setLocalStorageItem(STORAGE_KEY, mode)
     setStoredState(mode)
   }, [])
 

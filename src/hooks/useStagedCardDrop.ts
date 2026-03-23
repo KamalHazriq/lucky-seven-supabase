@@ -7,6 +7,7 @@ export type StagedDropTarget =
 
 interface UseStagedCardDropParams {
   enabled: boolean
+  allowDiscardTarget?: boolean
   lockedSlots: boolean[]
   localPanelRef: RefObject<HTMLDivElement | null>
   discardPileRef: RefObject<HTMLDivElement | null>
@@ -31,6 +32,7 @@ function sameTarget(a: StagedDropTarget, b: StagedDropTarget): boolean {
 
 export function useStagedCardDrop({
   enabled,
+  allowDiscardTarget = true,
   lockedSlots,
   localPanelRef,
   discardPileRef,
@@ -41,7 +43,7 @@ export function useStagedCardDrop({
     if (!enabled) return null
 
     const discardRect = discardPileRef.current?.getBoundingClientRect()
-    if (discardRect && pointInside(discardRect, x, y, 18)) {
+    if (allowDiscardTarget && discardRect && pointInside(discardRect, x, y, 18)) {
       return { kind: 'discard' }
     }
 
@@ -58,7 +60,7 @@ export function useStagedCardDrop({
     }
 
     return null
-  }, [discardPileRef, enabled, localPanelRef, lockedSlots])
+  }, [allowDiscardTarget, discardPileRef, enabled, localPanelRef, lockedSlots])
 
   const updateDropTarget = useCallback((x: number, y: number) => {
     const next = resolveDropTarget(x, y)

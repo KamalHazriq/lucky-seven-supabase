@@ -13,6 +13,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
 
+let pendingEnsureAuth: Promise<string> | null = null
+
 /**
  * Ensure the current browser session has an authenticated user.
  * If a session already exists (localStorage), it is reused.
@@ -25,8 +27,18 @@ export async function ensureAuth(): Promise<string> {
   const { data: { session } } = await supabase.auth.getSession()
   if (session?.user) return session.user.id
 
+  if (pendingEnsureAuth) return pendingEnsureAuth
+
   // No session — create anonymous user
-  const { data, error } = await supabase.auth.signInAnonymously()
-  if (error || !data.user) throw error ?? new Error('Anonymous sign-in returned no user')
-  return data.user.id
+  pendingEnsureAuth = supabase.auth
+    .signInAnonymously()
+    .then(({ data, error }) => {
+      if (error || !data.user) throw error ?? new Error('Anonymous sign-in returned no user')
+      return data.user.id
+    })
+    .finally(() => {
+      pendingEnsureAuth = null
+    })
+
+  return pendingEnsureAuth
 }

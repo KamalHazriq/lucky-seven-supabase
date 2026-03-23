@@ -47,19 +47,19 @@ export function subscribeReveals(
       },
     )
 
-  ensureAuth().then(() => {
-    if (cancelled) return
-    channel.subscribe()
-    supabase
-      .from('game_reveals')
-      .select('*')
-      .eq('game_id', gameId)
-      .then(({ data }) => {
-        if (cancelled || !data) return
-        scores = data.map(mapRevealRow)
-        sortAndEmit()
-      })
-  })
+  ensureAuth()
+    .then(async () => {
+      if (cancelled) return
+      channel.subscribe()
+      const { data } = await supabase
+        .from('game_reveals')
+        .select('*')
+        .eq('game_id', gameId)
+      if (cancelled || !data) return
+      scores = data.map(mapRevealRow)
+      sortAndEmit()
+    })
+    .catch(() => {})
 
   return () => {
     cancelled = true

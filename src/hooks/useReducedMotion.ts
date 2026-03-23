@@ -1,10 +1,11 @@
 import { useState, useEffect, useSyncExternalStore, useCallback } from 'react'
+import { getLocalStorageItem, setLocalStorageItem } from '../lib/browserStorage'
 
 const STORAGE_KEY = 'lucky7_reduced_motion' // "system" | "on" | "off"
 type Pref = 'system' | 'on' | 'off'
 
 function getStoredPref(): Pref {
-  const v = localStorage.getItem(STORAGE_KEY)
+  const v = getLocalStorageItem(STORAGE_KEY)
   if (v === 'on' || v === 'off') return v
   return 'system'
 }
@@ -27,7 +28,7 @@ export function useReducedMotion() {
   const reduced = pref === 'on' ? true : pref === 'off' ? false : osReduced
 
   const setPrefAndStore = useCallback((p: Pref) => {
-    localStorage.setItem(STORAGE_KEY, p)
+    setLocalStorageItem(STORAGE_KEY, p)
     setPref(p)
   }, [])
 

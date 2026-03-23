@@ -1,4 +1,4 @@
-export const CURRENT_VERSION = 'v1.0.3'
+export const CURRENT_VERSION = 'v1.0.4'
 
 export interface ReleaseNote {
   version: string
@@ -9,6 +9,43 @@ export interface ReleaseNote {
 
 // ─── Official releases (v1.x.x) ─────────────────────────────
 export const RELEASES: ReleaseNote[] = [
+  {
+    version: 'v1.0.4',
+    title: 'King Lock Polish & Hardening Pass',
+    date: '24 March 2026',
+    sections: [
+      {
+        heading: 'Table Feel',
+        items: [
+          'Locked cards now show a premium King card placed on top instead of badge-style lock text, with subtler theme-aware materials and cleaner unlock motion',
+          'The lock visual remains purely cosmetic: lock logic, rules, and multiplayer behavior are unchanged',
+        ],
+      },
+      {
+        heading: 'Turn Flow',
+        items: [
+          'Selecting the top discard card is now a reversible preview instead of immediately consuming the turn',
+          'Pile draws remain committed immediately, while discard previews can be cancelled cleanly before choosing to draw from the pile instead',
+        ],
+      },
+      {
+        heading: 'Hardening',
+        items: [
+          'Anonymous auth startup is now deduplicated so overlapping game, chat, and analytics flows cannot race multiple sign-ins on slow or unstable connections',
+          'Browser preference and session storage access is now guarded across startup, chat, audio, theme, layout, analytics, and dev tools to avoid crashes when storage is blocked or unavailable',
+          'Background chat, reveal, and dev-mode subscriptions now fail quietly instead of leaking unhandled promise rejections during auth or reconnect trouble',
+          'Create-game and rematch flows now retry join-code conflicts instead of failing after a single unlucky collision',
+        ],
+      },
+      {
+        heading: 'Maintenance',
+        items: [
+          'Added focused tests for the new turn-card state model and the shared browser-storage helper',
+          'Updated the in-app patch notes, version labels, package metadata, and GitHub README to reflect the shipped changes consistently',
+        ],
+      },
+    ],
+  },
   {
     version: 'v1.0.3',
     title: 'Stability Sweep',

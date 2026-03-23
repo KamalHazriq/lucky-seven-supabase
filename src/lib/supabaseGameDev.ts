@@ -58,21 +58,23 @@ export function subscribeDevAccess(
       },
     )
 
-  ensureAuth().then(() => {
-    if (cancelled) return
-    channel.subscribe()
-    supabase
-      .from('game_dev_access')
-      .select('*')
-      .eq('game_id', gameId)
-      .eq('uid', uid)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (cancelled) return
-        const row = data as DevAccessRow | null
-        cb(row ? { activatedAt: row.activated_at, uid: row.uid, privileges: row.privileges } : null)
-      })
-  })
+  ensureAuth()
+    .then(async () => {
+      if (cancelled) return
+      channel.subscribe()
+      const { data } = await supabase
+        .from('game_dev_access')
+        .select('*')
+        .eq('game_id', gameId)
+        .eq('uid', uid)
+        .maybeSingle()
+      if (cancelled) return
+      const row = data as DevAccessRow | null
+      cb(row ? { activatedAt: row.activated_at, uid: row.uid, privileges: row.privileges } : null)
+    })
+    .catch(() => {
+      if (!cancelled) cb(null)
+    })
 
   return () => {
     cancelled = true
@@ -115,11 +117,15 @@ export function subscribeAllPrivate(
       },
     )
 
-  ensureAuth().then(() => {
-    if (cancelled) return
-    channel.subscribe()
-    fetchAll()
-  })
+  ensureAuth()
+    .then(() => {
+      if (cancelled) return
+      channel.subscribe()
+      fetchAll()
+    })
+    .catch(() => {
+      if (!cancelled) cb({})
+    })
 
   return () => {
     cancelled = true
@@ -150,20 +156,22 @@ export function subscribeDrawPile(
       },
     )
 
-  ensureAuth().then(() => {
-    if (cancelled) return
-    channel.subscribe()
-    supabase
-      .from('game_internal')
-      .select('draw_pile')
-      .eq('game_id', gameId)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (cancelled) return
-        const row = data as GameInternalDrawPileRow | null
-        cb(row?.draw_pile ?? [])
-      })
-  })
+  ensureAuth()
+    .then(async () => {
+      if (cancelled) return
+      channel.subscribe()
+      const { data } = await supabase
+        .from('game_internal')
+        .select('draw_pile')
+        .eq('game_id', gameId)
+        .maybeSingle()
+      if (cancelled) return
+      const row = data as GameInternalDrawPileRow | null
+      cb(row?.draw_pile ?? [])
+    })
+    .catch(() => {
+      if (!cancelled) cb([])
+    })
 
   return () => {
     cancelled = true

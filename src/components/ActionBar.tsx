@@ -1,8 +1,9 @@
 import { memo, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import CardView from './CardView'
-import type { Card, PowerEffectType, PowerRankKey, PowerAssignments, DrawnCardSource, PlayerDoc } from '../lib/types'
+import type { Card, PowerEffectType, PowerRankKey, PowerAssignments, PlayerDoc } from '../lib/types'
 import { getCardRankKey, EFFECT_LABELS, DEFAULT_POWER_ASSIGNMENTS } from '../lib/types'
+import type { TurnCardUiSource } from '../lib/turnCardState'
 import type { SelectionModeState, SelectedTarget } from '../hooks/useSelectionMode'
 
 interface ActionBarProps {
@@ -11,7 +12,7 @@ interface ActionBarProps {
   locks: boolean[]
   powerAssignments: PowerAssignments
   spentPowerCardIds: Record<string, boolean>
-  drawnCardSource: DrawnCardSource
+  drawnCardSource: TurnCardUiSource
   onSwap: (slotIndex: number) => void
   onDiscard: () => void
   onUsePower: (rankKey: PowerRankKey, effectType: PowerEffectType) => void
@@ -64,7 +65,11 @@ function ActionBar({
   const rankLabel = rankKey === 'JOKER' ? 'Joker' : rankKey
   const isSpent = card ? !!spentPowerCardIds[card.id] : false
   const isUnlockWithNoTargets = effectType === 'unlock_one_locked_card' && !hasAnyLocks
-  const canCancel = drawnCardSource === 'discard'
+  const isDiscardPreview = drawnCardSource === 'discard-preview'
+  const isDiscardFlow = drawnCardSource === 'discard' || isDiscardPreview
+  const canCancel = isDiscardFlow
+  const canDiscard = drawnCardSource === 'pile'
+  const canUsePower = drawnCardSource === 'pile'
 
   const isSelecting = selection && selection.phase !== 'idle'
 
@@ -173,7 +178,7 @@ function ActionBar({
                   {/* Drawn card preview */}
                   <div className="shrink-0 flex flex-col items-center">
                     <p className="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider mb-1">
-                      Drew
+                      {isDiscardPreview ? 'Picked' : drawnCardSource === 'discard' ? 'Took' : 'Drew'}
                     </p>
                     <CardView card={card} faceUp size="sm" />
                   </div>
@@ -183,7 +188,7 @@ function ActionBar({
                     {/* Swap row — primary action */}
                     <div>
                       <p className="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider mb-1">
-                        Swap with slot
+                        {isDiscardFlow ? 'Take it with a swap' : 'Swap with slot'}
                       </p>
                       <div className="flex gap-1.5">
                         {locks.map((locked, i) => (
@@ -204,30 +209,39 @@ function ActionBar({
                       </div>
                     </div>
 
-                    {/* Discard + Power row — secondary actions */}
-                    <div className="flex gap-1.5">
-                      <button
-                        onClick={onDiscard}
-                        className="flex-1 min-h-[36px] bg-secondary hover:bg-secondary/80 text-foreground rounded-xl text-xs font-semibold transition-colors cursor-pointer"
-                      >
-                        Discard
-                      </button>
+                    {isDiscardFlow ? (
+                      <p className="text-[11px] leading-relaxed text-muted-foreground">
+                        {isDiscardPreview
+                          ? 'This discard pick is only a preview. Swap it into one of your slots, or cancel and draw from the pile instead.'
+                          : 'Finish the discard take by swapping it into one of your slots, or cancel to return it to the discard pile.'}
+                      </p>
+                    ) : (
+                      <div className="flex gap-1.5">
+                        {canDiscard && (
+                          <button
+                            onClick={onDiscard}
+                            className="flex-1 min-h-[36px] bg-secondary hover:bg-secondary/80 text-foreground rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+                          >
+                            Discard
+                          </button>
+                        )}
 
-                      {effectInfo && rankKey && effectType && (
-                        <button
-                          onClick={() => !isSpent && !isUnlockWithNoTargets && onUsePower(rankKey, effectType)}
-                          disabled={isSpent || isUnlockWithNoTargets}
-                          title={isSpent ? 'Power already used for this card' : isUnlockWithNoTargets ? 'No card is locked right now' : effectInfo.desc}
-                          className={`flex-1 min-h-[36px] rounded-xl text-xs font-bold transition-colors text-white ${
-                            isSpent || isUnlockWithNoTargets
-                              ? 'bg-secondary/50 opacity-50 cursor-not-allowed text-muted-foreground'
-                              : `${effectInfo.color} cursor-pointer shadow-sm`
-                          }`}
-                        >
-                          {isSpent ? `${rankLabel} (spent)` : isUnlockWithNoTargets ? `${rankLabel}: No locks` : `${rankLabel}: ${effectInfo.label}`}
-                        </button>
-                      )}
-                    </div>
+                        {canUsePower && effectInfo && rankKey && effectType && (
+                          <button
+                            onClick={() => !isSpent && !isUnlockWithNoTargets && onUsePower(rankKey, effectType)}
+                            disabled={isSpent || isUnlockWithNoTargets}
+                            title={isSpent ? 'Power already used for this card' : isUnlockWithNoTargets ? 'No card is locked right now' : effectInfo.desc}
+                            className={`flex-1 min-h-[36px] rounded-xl text-xs font-bold transition-colors text-white ${
+                              isSpent || isUnlockWithNoTargets
+                                ? 'bg-secondary/50 opacity-50 cursor-not-allowed text-muted-foreground'
+                                : `${effectInfo.color} cursor-pointer shadow-sm`
+                            }`}
+                          >
+                            {isSpent ? `${rankLabel} (spent)` : isUnlockWithNoTargets ? `${rankLabel}: No locks` : `${rankLabel}: ${effectInfo.label}`}
+                          </button>
+                        )}
+                      </div>
+                    )}
 
                     {/* Cancel row (discard source only) */}
                     {canCancel && (
@@ -235,7 +249,7 @@ function ActionBar({
                         onClick={onClose}
                         className="w-full min-h-[32px] bg-rose-900/25 hover:bg-rose-900/40 border border-rose-700/30 text-rose-300 rounded-xl text-[10px] font-medium transition-colors cursor-pointer"
                       >
-                        {isDesktop && <Kbd>Esc</Kbd>} Cancel Take
+                        {isDesktop && <Kbd>Esc</Kbd>} {isDiscardPreview ? 'Cancel Pick' : 'Cancel Take'}
                       </button>
                     )}
                   </div>

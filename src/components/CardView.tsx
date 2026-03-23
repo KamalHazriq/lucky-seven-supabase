@@ -318,7 +318,7 @@ function CardView({
         </motion.div>
       )}
 
-      {/* King lock overlay — visible on locked cards */}
+      {/* Lock overlay — visible on locked cards */}
       {locked && (
         showFace ? (
           <div className="absolute top-0.5 right-0.5 z-10 pointer-events-none flex items-center justify-center w-5 h-5 bg-red-900/80 rounded-full shadow-md">
@@ -326,10 +326,7 @@ function CardView({
           </div>
         ) : (
           <div className="absolute inset-0 rounded-xl bg-red-900/25 backdrop-blur-[1px] flex items-center justify-center z-10 pointer-events-none">
-            <div className="flex flex-col items-center">
-              <span className="text-2xl drop-shadow-lg">K</span>
-              <span className="text-red-400 text-lg drop-shadow-lg" style={{ lineHeight: 1 }}>🔒</span>
-            </div>
+            <span className="text-red-400 text-lg drop-shadow-lg" style={{ lineHeight: 1 }}>🔒</span>
           </div>
         )
       )}

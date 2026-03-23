@@ -77,9 +77,6 @@ interface UseGameActionsParams {
   selectTarget: (target: SelectedTarget) => void
   confirmSelection: () => void
 
-  // Stamp overlays
-  setStampOverlays: React.Dispatch<React.SetStateAction<Record<string, 'lock' | 'unlock' | null>>>
-
   // Discard top (for choreography)
   discardTop: Card | null
 
@@ -127,7 +124,7 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
     startPileDraw, reconstructStaging, resetChoreo,
     triggerFly,
     selection, isSelecting, startSelection, selectTarget, confirmSelection,
-    setStampOverlays, discardTop, peekAllowsOpponent, noMemoryMode, cardsPerPlayer,
+    discardTop, peekAllowsOpponent, noMemoryMode, cardsPerPlayer,
   } = params
 
   const [busy, setBusy] = useState(false)
@@ -135,28 +132,14 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
   const [modal, setModal] = useState<ModalState>({ type: 'none' })
   const [peekReveal, setPeekReveal] = useState<{ slot: number; card: Card } | null>(null)
   const peekTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const stampTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
   const canDraw = isDrawPhase && !busy
   const canTakeDiscard = canDraw && !!discardTop
-
-  const showStampOverlay = useCallback((playerId: string, type: 'lock' | 'unlock') => {
-    if (reduced) return
-    const existing = stampTimersRef.current[playerId]
-    if (existing) clearTimeout(existing)
-    setStampOverlays((prev) => ({ ...prev, [playerId]: type }))
-    stampTimersRef.current[playerId] = setTimeout(() => {
-      setStampOverlays((prev) => ({ ...prev, [playerId]: null }))
-      delete stampTimersRef.current[playerId]
-    }, 800)
-  }, [reduced, setStampOverlays])
 
   // Clean up peek timer on unmount
   useEffect(() => {
     return () => {
       if (peekTimerRef.current) clearTimeout(peekTimerRef.current)
-      Object.values(stampTimersRef.current).forEach(clearTimeout)
-      stampTimersRef.current = {}
     }
   }, [])
 
@@ -476,14 +459,12 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
         withBusy(async () => {
           await lockCard(gameId!, first.playerId, first.slotIndex)
           playSfx('lock'); vibrate(50)
-          showStampOverlay(first.playerId, 'lock')
         })
         break
       case 'anyLockedSlot':
         withBusy(async () => {
           await unlockCard(gameId!, first.playerId, first.slotIndex)
           playSfx('unlock'); vibrate()
-          showStampOverlay(first.playerId, 'unlock')
         })
         break
       case 'anyPlayer':
@@ -493,7 +474,7 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
         })
         break
     }
-  }, [selection, confirmSelection, withBusy, gameId, reduced, showStampOverlay, noMemoryMode])
+  }, [selection, confirmSelection, withBusy, gameId, reduced, noMemoryMode])
 
   const handleSelectionClick = useCallback((target: SelectedTarget) => {
     // For swap (anyPlayerSlot two-pick), prevent selecting a second card from the same player
@@ -536,7 +517,6 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
       await lockCard(gameId!, targetPlayerId, slotIndex)
       playSfx('lock')
       vibrate(50)
-      showStampOverlay(targetPlayerId, 'lock')
     })
   }
 
@@ -546,7 +526,6 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
       await unlockCard(gameId!, targetPlayerId, slotIndex)
       playSfx('unlock')
       vibrate()
-      showStampOverlay(targetPlayerId, 'unlock')
     })
   }
 

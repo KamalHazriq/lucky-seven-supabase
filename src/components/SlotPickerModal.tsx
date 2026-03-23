@@ -108,46 +108,25 @@ export default function SlotPickerModal({
                         const selectable = slotFilter(pid, i, pd)
                         const knownCard = isLocal ? knownCards?.[String(i)] : undefined
 
-                        if (knownCard) {
-                          return (
-                            <div
-                              key={i}
-                              onClick={() => selectable && onSelect(pid, i)}
-                              className={`relative cursor-pointer ${!selectable ? 'opacity-40 cursor-not-allowed' : ''}`}
-                            >
-                              <CardView
-                                card={knownCard}
-                                faceUp
-                                known
-                                locked={pd.locks[i]}
-                                size="sm"
-                                highlight={selectable}
-                              />
-                              <span className={`absolute -bottom-4 left-1/2 -translate-x-1/2 text-[9px] ${selectable ? colors.text : 'text-slate-500'}`}>
-                                #{i + 1}
-                              </span>
-                            </div>
-                          )
-                        }
-
                         return (
-                          <button
+                          <div
                             key={i}
-                            onClick={() => selectable && onSelect(pid, i)}
-                            disabled={!selectable}
-                            className={`
-                              w-14 h-20 rounded-xl border-2 flex flex-col items-center justify-center text-xs font-medium transition-all cursor-pointer
-                              ${!selectable
-                                ? 'bg-slate-700/50 border-slate-700 opacity-40 cursor-not-allowed'
-                                : `bg-slate-800 border-slate-600 ${colors.hover}`
-                              }
-                            `}
+                            className="relative"
                           >
-                            {pd.locks[i] && <span>🔒</span>}
-                            <span className={selectable ? colors.text : 'text-slate-500'}>
+                            <CardView
+                              card={knownCard}
+                              faceUp={!!knownCard}
+                              known={!!knownCard}
+                              locked={pd.locks[i]}
+                              size="sm"
+                              onClick={selectable ? () => onSelect(pid, i) : undefined}
+                              disabled={!selectable}
+                              highlight={selectable}
+                            />
+                            <span className={`absolute -bottom-4 left-1/2 -translate-x-1/2 text-[9px] ${selectable ? colors.text : 'text-slate-500'}`}>
                               #{i + 1}
                             </span>
-                          </button>
+                          </div>
                         )
                       })}
                     </div>

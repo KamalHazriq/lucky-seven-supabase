@@ -49,13 +49,9 @@ export default function PeekAllOpponentModal({
 
                 if (isLocked) {
                   return (
-                    <div
-                      key={i}
-                      className="w-20 h-28 rounded-xl bg-slate-700/50 border-2 border-red-700/50 flex flex-col items-center justify-center opacity-60"
-                    >
-                      <span className="text-lg">🔒</span>
-                      <span className="text-[10px] text-red-400 mt-1">Locked</span>
-                      <span className="text-[9px] text-slate-500">Can't peek</span>
+                    <div key={i} className="flex flex-col items-center gap-1 opacity-90">
+                      <CardView locked size="md" />
+                      <span className="text-[10px] text-indigo-300/70">Locked</span>
                     </div>
                   )
                 }

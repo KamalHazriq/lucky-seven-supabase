@@ -1,7 +1,9 @@
 import { useState, useRef, useCallback, useEffect, useMemo, memo } from 'react'
 import { usePerformanceMode } from '../hooks/usePerformanceMode'
+import { useReducedMotion } from '../hooks/useReducedMotion'
 import { motion, type Transition } from 'framer-motion'
 import LuckySevenCardBack from './LuckySevenCardBack'
+import KingLockOverlay from './KingLockOverlay'
 
 /** Shared spring configs for premium buttery-smooth motion */
 const SPRING_HOVER: Transition = { type: 'spring', stiffness: 350, damping: 22, mass: 0.6 }
@@ -66,11 +68,13 @@ function CardView({
 }: CardViewProps) {
   const showFace = faceUp && card
   const perfMode = usePerformanceMode()
+  const { reduced } = useReducedMotion()
   const [showTooltip, setShowTooltip] = useState(false)
   const [showRevealFlash, setShowRevealFlash] = useState(false)
   const [revealFlashKey, setRevealFlashKey] = useState(0)
   const lockerName = lockInfo?.lockerName
   const prevShowFaceRef = useRef(!!showFace)
+  const prevLockedRef = useRef(locked)
   const mountedRef = useRef(false)
 
   const faceDownFrameStyle = useMemo(() => {
@@ -126,6 +130,10 @@ function CardView({
     }
   }, [showFace])
 
+  useEffect(() => {
+    prevLockedRef.current = locked
+  }, [locked])
+
   // ─── Font sizes per card size ───
   const suitFontSize = size === 'lg' ? '1.8rem' : size === 'md' ? '1.5rem' : '1.1rem'
   const rankFontSize = size === 'lg' ? '0.85rem' : size === 'md' ? '0.75rem' : '0.58rem'
@@ -133,6 +141,7 @@ function CardView({
   const isFaceCard = card && !card.isJoker && (card.rank === 'J' || card.rank === 'Q' || card.rank === 'K')
   const cornerTop = size === 'lg' ? '3px' : '2px'
   const cornerLeft = size === 'lg' ? '4px' : '3px'
+  const shouldAnimateLockEntrance = mountedRef.current && locked && !prevLockedRef.current
 
   return (
     <motion.div
@@ -292,7 +301,7 @@ function CardView({
         </div>
       )}
 
-      {showRevealFlash && showFace && !perfMode && (
+      {showRevealFlash && showFace && !perfMode && !reduced && (
         <motion.div
           key={`reveal-${revealFlashKey}`}
           initial={{ opacity: 0, scale: 0.82 }}
@@ -318,18 +327,12 @@ function CardView({
         </motion.div>
       )}
 
-      {/* Lock overlay — visible on locked cards */}
-      {locked && (
-        showFace ? (
-          <div className="absolute top-0.5 right-0.5 z-10 pointer-events-none flex items-center justify-center w-5 h-5 bg-red-900/80 rounded-full shadow-md">
-            <span className="text-[10px] leading-none">🔒</span>
-          </div>
-        ) : (
-          <div className="absolute inset-0 rounded-xl bg-red-900/25 backdrop-blur-[1px] flex items-center justify-center z-10 pointer-events-none">
-            <span className="text-red-400 text-lg drop-shadow-lg" style={{ lineHeight: 1 }}>🔒</span>
-          </div>
-        )
-      )}
+      <KingLockOverlay
+        locked={locked}
+        size={size}
+        animateOnEnter={shouldAnimateLockEntrance}
+        motionEnabled={!perfMode && !reduced}
+      />
 
       {/* Lock tooltip trigger — hover + long-press */}
       {locked && lockerName && (

@@ -133,53 +133,27 @@ export default function QueenSwapModal({
                         const isSelected = isSelectedA || isSelectedB
                         const knownCard = isLocal ? knownCards?.[String(i)] : undefined
 
-                        if (knownCard && !isLocked) {
-                          return (
-                            <div
-                              key={i}
-                              onClick={() => handleSlotClick(pid, i)}
-                              className={`relative cursor-pointer ${
-                                isSelected ? 'ring-2 ring-purple-400 rounded-xl shadow-lg shadow-purple-500/20' : ''
-                              }`}
-                            >
-                              <CardView
-                                card={knownCard}
-                                faceUp
-                                known
-                                size="sm"
-                                highlight={isSelected}
-                              />
-                              <span className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-[9px] text-purple-300">
-                                #{i + 1}
-                                {isSelectedA && ' 1st'}
-                                {isSelectedB && ' 2nd'}
-                              </span>
-                            </div>
-                          )
-                        }
-
                         return (
-                          <button
+                          <div
                             key={i}
-                            onClick={() => handleSlotClick(pid, i)}
-                            disabled={isLocked}
-                            className={`
-                              w-14 h-20 rounded-xl border-2 flex flex-col items-center justify-center text-xs font-medium transition-all cursor-pointer
-                              ${isLocked
-                                ? 'bg-slate-700/50 border-red-700/50 opacity-50 cursor-not-allowed'
-                                : isSelected
-                                  ? 'bg-purple-700/50 border-purple-400 shadow-lg shadow-purple-500/20'
-                                  : 'bg-slate-800 border-slate-600 hover:border-purple-400'
-                              }
-                            `}
+                            className="relative"
                           >
-                            {isLocked && <span>🔒</span>}
-                            <span className={isSelected ? 'text-purple-300' : 'text-slate-400'}>
+                            <CardView
+                              card={knownCard}
+                              faceUp={!!knownCard}
+                              known={!!knownCard}
+                              locked={isLocked}
+                              size="sm"
+                              onClick={!isLocked ? () => handleSlotClick(pid, i) : undefined}
+                              disabled={isLocked}
+                              highlight={isSelected}
+                            />
+                            <span className={`absolute -bottom-4 left-1/2 -translate-x-1/2 text-[9px] ${isSelected ? 'text-purple-300' : 'text-slate-400'}`}>
                               #{i + 1}
+                              {isSelectedA && ' 1st'}
+                              {isSelectedB && ' 2nd'}
                             </span>
-                            {isSelectedA && <span className="text-[9px] text-purple-300">1st</span>}
-                            {isSelectedB && <span className="text-[9px] text-purple-300">2nd</span>}
-                          </button>
+                          </div>
                         )
                       })}
                     </div>

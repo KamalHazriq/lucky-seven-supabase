@@ -100,8 +100,6 @@ export default function Game() {
     goBack: goBackSelection,
   } = useSelectionMode()
 
-  // Stamp overlay state for lock/unlock choreography (Section E)
-  const [stampOverlays, setStampOverlays] = useState<Record<string, 'lock' | 'unlock' | null>>({})
   // Measure sticky header + banner stack height for layout offsets.
   // Sets CSS custom properties so the left sidebar and table zone adapt dynamically.
   useEffect(() => {
@@ -243,7 +241,7 @@ export default function Game() {
     startPileDraw, reconstructStaging, resetChoreo,
     triggerFly,
     selection, isSelecting, startSelection, selectTarget,
-    confirmSelection, setStampOverlays,
+    confirmSelection,
     discardTop: game?.discardTop ?? null,
     peekAllowsOpponent: game?.settings?.peekAllowsOpponent ?? false,
     noMemoryMode,
@@ -607,7 +605,6 @@ export default function Game() {
                         queueNumber={queueNumbers[pid] ?? null}
                         slotOverlays={slotOverlays[pid] ?? null}
                         swapLabels={swapLabels[pid] ?? null}
-                        stampOverlay={stampOverlays[pid] ?? null}
                         chaosAnimation={!!chaosAnimations[pid]}
                         devAllHands={devMode.isDevMode && devMode.privileges?.canSeeAllCards ? devMode.allPlayerHands : null}
                         localPrivateState={privateState ?? null}
@@ -650,7 +647,6 @@ export default function Game() {
                     queueNumber={queueNumbers[user.uid] ?? null}
                     slotOverlays={localSlotOverlays}
                     swapLabels={swapLabels[user.uid] ?? null}
-                    stampOverlay={stampOverlays[user.uid] ?? null}
                     chaosAnimation={!!chaosAnimations[user.uid]}
                     devShowAllCards={devMode.isDevMode && (devMode.privileges?.canSeeAllCards ?? false)}
                     cardsPerPlayer={cardsPerPlayer}
@@ -724,7 +720,6 @@ export default function Game() {
                       queueNumber={queueNumbers[pid] ?? null}
                       slotOverlays={slotOverlays[pid] ?? null}
                       swapLabels={swapLabels[pid] ?? null}
-                      stampOverlay={stampOverlays[pid] ?? null}
                       chaosAnimation={!!chaosAnimations[pid]}
                       devAllHands={devMode.isDevMode && devMode.privileges?.canSeeAllCards ? devMode.allPlayerHands : null}
                       localPrivateState={privateState ?? null}
@@ -814,7 +809,6 @@ export default function Game() {
                 queueNumber={queueNumbers[user.uid] ?? null}
                 slotOverlays={localSlotOverlays}
                 swapLabels={swapLabels[user.uid] ?? null}
-                stampOverlay={stampOverlays[user.uid] ?? null}
                 chaosAnimation={!!chaosAnimations[user.uid]}
                 devShowAllCards={devMode.isDevMode && (devMode.privileges?.canSeeAllCards ?? false)}
                 cardsPerPlayer={cardsPerPlayer}

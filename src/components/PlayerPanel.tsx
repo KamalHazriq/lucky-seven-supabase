@@ -50,8 +50,6 @@ interface PlayerPanelProps {
   selectedTarget?: SelectedTarget | null
   /** The currently selected second target (highlighted with a badge) */
   selectedSecondTarget?: SelectedTarget | null
-  /** Stamp overlay for lock/unlock choreography */
-  stampOverlay?: 'lock' | 'unlock' | null
   /** Lobby-chosen color key (index into LOBBY_COLORS) — overrides seat color */
   colorKey?: number | null
   /** Dev mode: all players' private data — when present, remote cards shown face-up */
@@ -92,7 +90,6 @@ function PlayerPanel({
   onPlayerSelect,
   selectedTarget,
   selectedSecondTarget,
-  stampOverlay,
   colorKey,
   devAllHands,
   devShowAllCards = false,
@@ -192,23 +189,6 @@ function PlayerPanel({
           </span>
         </motion.div>
       )}
-
-      {/* Stamp overlay for lock/unlock choreography */}
-      <AnimatePresence>
-        {stampOverlay && (
-          <motion.div
-            initial={{ opacity: 0, scale: 2, rotate: -15 }}
-            animate={{ opacity: 1, scale: 1, rotate: 0 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            transition={{ type: 'spring', damping: 12, stiffness: 300 }}
-            className="absolute inset-0 z-30 pointer-events-none flex items-center justify-center"
-          >
-            <div className={`text-4xl ${stampOverlay === 'lock' ? 'text-red-400' : 'text-cyan-400'} drop-shadow-lg`}>
-              {stampOverlay === 'lock' ? '🔒' : '🔓'}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       <div className="flex items-center gap-1.5 mb-2.5">
         <div
@@ -351,13 +331,6 @@ function PlayerPanel({
               {/* Selection mode: dim non-selectable slots (don't dim selected targets) */}
               {inSelectionMode && !slotSelectable && selectionTargetType !== 'anyPlayer' && !isSelected && !isSecondSelected && (
                 <div className="absolute inset-0 rounded-xl bg-black/40 pointer-events-none z-10" />
-              )}
-
-              {/* Lock badge — always at z-30 so it's visible above every overlay */}
-              {isLocked && (
-                <div className="absolute top-0.5 right-0.5 z-30 pointer-events-none w-5 h-5 bg-red-900/95 rounded-full flex items-center justify-center shadow-md border border-red-500/50">
-                  <span className="text-[10px] leading-none select-none">🔒</span>
-                </div>
               )}
 
               {/* Known card badge for face-down cards (visible to all in selection) */}

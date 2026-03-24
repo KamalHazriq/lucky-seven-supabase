@@ -146,11 +146,20 @@ export default function Game() {
   // Derived state
   const drawnCard = privateState?.drawnCard ?? null
   const hasDrawnCard = !!drawnCard
-  const stagingActive = choreo.phase === 'staging'
-  const stagingCard = stagingActive ? choreo.staging.card : null
-  const stagingFaceUp = stagingActive ? choreo.staging.faceUp : false
-  const stagingOwnerColor = stagingActive ? choreo.staging.ownerColor : undefined
-  const stagingPending = stagingActive ? !!choreo.staging.pending : false
+  // Staging is active when choreography says so, OR as a fallback when the
+  // local player has an unresolved active card (keeps center slot filled even
+  // if the choreography flight hasn't settled yet).
+  const choreoStaging = choreo.phase === 'staging'
+  const localCardFallback = isMyTurn && hasActiveCard
+  const stagingActive = choreoStaging || localCardFallback
+  const stagingCard = (choreoStaging && choreo.staging.card)
+    ? choreo.staging.card
+    : (localCardFallback ? activeCard : null)
+  const stagingFaceUp = (choreoStaging && choreo.staging.faceUp)
+    ? true
+    : !!(localCardFallback && activeCard)
+  const stagingOwnerColor = choreoStaging ? choreo.staging.ownerColor : undefined
+  const stagingPending = choreoStaging ? !!choreo.staging.pending : false
 
   // Reset dismissed state when drawn card is consumed/cleared
   useEffect(() => {
@@ -240,6 +249,7 @@ export default function Game() {
     choreo, startDiscardTake, startSwapFromStaging, startDiscardAction,
     startPileDraw, reconstructStaging, resetChoreo,
     triggerFly,
+    otherPanelRefs,
     selection, isSelecting, startSelection, selectTarget,
     confirmSelection,
     discardTop: game?.discardTop ?? null,

@@ -1,10 +1,19 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import CardView from './CardView'
 import { getLocalStorageJson, setLocalStorageJson } from '../lib/browserStorage'
 import type { Card } from '../lib/types'
 
 const STORAGE_KEY = 'lucky7_discardreorder_pos'
+
+function clampToViewport(x: number, y: number): { x: number; y: number } {
+  const modalW = 448
+  const modalH = 520
+  return {
+    x: Math.max(0, Math.min(x, window.innerWidth - modalW)),
+    y: Math.max(0, Math.min(y, window.innerHeight - modalH)),
+  }
+}
 
 function loadPos(): { x: number; y: number } {
   const stored = getLocalStorageJson(
@@ -15,9 +24,9 @@ function loadPos(): { x: number; y: number } {
       && typeof (value as { x?: unknown }).x === 'number'
       && typeof (value as { y?: unknown }).y === 'number',
   )
-  if (stored) return stored
+  if (stored) return clampToViewport(stored.x, stored.y)
   // Default: centre-bottom of viewport
-  return { x: window.innerWidth / 2 - 224, y: window.innerHeight - 520 }
+  return clampToViewport(window.innerWidth / 2 - 224, window.innerHeight - 520)
 }
 
 interface DrawPileReorderModalProps {
@@ -49,6 +58,12 @@ export default function DrawPileReorderModal({
     setCards([...drawPileCards])
     setDirty(false)
   }, [drawPileCards])
+
+  // Live sync: keep cards in step with the draw pile when user has no pending changes
+  useEffect(() => {
+    if (!open || dirty) return
+    setCards([...drawPileCards])
+  }, [drawPileCards, open, dirty])
 
   const moveToTop = (index: number) => {
     if (index === 0) return

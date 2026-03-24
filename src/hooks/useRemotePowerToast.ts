@@ -60,15 +60,22 @@ export function useRemotePowerToast(
     if (!display) return
 
     const parsed = parseGameAction(lastEntry, players)
-    if (!parsed || !('actor' in parsed) || parsed.actor.playerId === localUserId) return
+    if (!parsed || !('actor' in parsed)) return
 
-    toast(display.text, {
+    const isLocalActor = parsed.actor.playerId === localUserId
+
+    // Replace actor name with "You" for own actions
+    const toastText = isLocalActor
+      ? display.text.replace(parsed.actor.displayName, 'You')
+      : display.text
+
+    toast(toastText, {
       icon: display.icon,
       duration: 3000,
       style: {
-        background: 'rgba(30, 41, 59, 0.95)',
+        background: isLocalActor ? 'rgba(20, 83, 45, 0.95)' : 'rgba(30, 41, 59, 0.95)',
         color: '#e2e8f0',
-        border: '1px solid rgba(100, 116, 139, 0.3)',
+        border: isLocalActor ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid rgba(100, 116, 139, 0.3)',
         fontSize: '12px',
         fontWeight: '500',
         maxWidth: '320px',

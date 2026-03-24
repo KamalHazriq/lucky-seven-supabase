@@ -696,7 +696,13 @@ select option {
   background: radial-gradient(ellipse at center, var(--felt-center) 0%, transparent 80%);
   border: 1px solid var(--felt-border);
   border-radius: 1.25rem;
-  padding: 1.25rem 1.5rem;
+  padding: 1rem;
+}
+
+@media (min-width: 640px) {
+  .classic-pile-zone {
+    padding: 1.25rem 1.5rem;
+  }
 }
 
 /* ─── Responsive layout fixes ───────────────────────────── */

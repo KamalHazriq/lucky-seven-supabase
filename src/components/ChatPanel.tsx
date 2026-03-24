@@ -199,12 +199,14 @@ export default function ChatPanel({ open, messages, localUserId, onSend, onClose
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 16, scale: 0.96 }}
           transition={{ type: 'spring', stiffness: 350, damping: 26, mass: 0.6 }}
-          className="fixed z-40 w-80 max-w-[calc(100vw-24px)] bg-surface-overlay backdrop-blur-md border border-border-subtle rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+          className={`fixed z-40 flex flex-col overflow-hidden rounded-2xl border border-border-subtle bg-surface-overlay shadow-2xl backdrop-blur-md ${isDesktop ? 'w-80 max-w-[calc(100vw-24px)]' : 'left-3 right-3'}`}
           style={{
-            maxHeight: 'min(420px, 60vh)',
+            maxHeight: isDesktop ? 'min(420px, 60vh)' : 'min(68dvh, 560px)',
             ...(isDesktop && pos
               ? { left: pos.x, top: pos.y, bottom: 'auto', right: 'auto' }
-              : { bottom: 'calc(4.5rem + env(safe-area-inset-bottom, 0px))', right: '0.75rem' }),
+              : isDesktop
+                ? { bottom: 'calc(4.5rem + env(safe-area-inset-bottom, 0px))', right: '0.75rem' }
+                : { bottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }),
           }}
         >
           {/* Header — draggable on desktop */}
@@ -296,7 +298,7 @@ export default function ChatPanel({ open, messages, localUserId, onSend, onClose
                 transition={{ duration: 0.18 }}
                 onClick={scrollToBottom}
                 className="absolute left-1/2 -translate-x-1/2 z-50 px-3 py-1 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold rounded-full shadow-lg cursor-pointer"
-                style={{ bottom: '7.5rem' }}
+                style={{ bottom: isDesktop ? '7.5rem' : '6rem' }}
               >
                 New messages &darr;
               </motion.button>

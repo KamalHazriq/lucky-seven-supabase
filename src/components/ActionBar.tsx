@@ -88,7 +88,7 @@ function ActionBar({
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 12, scale: 0.96 }}
           transition={{ type: 'spring', stiffness: 300, damping: 26, mass: 0.7 }}
-          className={`mt-3 rounded-2xl border backdrop-blur-md p-3 shadow-xl ${
+          className={`mt-3 rounded-2xl border p-2.5 shadow-xl backdrop-blur-md sm:p-3 ${
             isSelecting ? 'ring-1 ring-amber-500/40' : ''
           }`}
           style={{
@@ -138,7 +138,7 @@ function ActionBar({
                 </p>
 
                 {/* Action buttons */}
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row">
                   {selection?.phase === 'confirming' && (
                     <button
                       onClick={onSelectionConfirm}
@@ -174,9 +174,9 @@ function ActionBar({
                 exit={{ opacity: 0, x: 20 }}
                 transition={{ type: 'spring', stiffness: 350, damping: 28, mass: 0.6 }}
               >
-                <div className="flex items-start gap-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
                   {/* Drawn card preview */}
-                  <div className="shrink-0 flex flex-col items-center">
+                  <div className="flex shrink-0 flex-col items-center sm:self-center">
                     <p className="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider mb-1">
                       {isDiscardPreview ? 'Picked' : drawnCardSource === 'discard' ? 'Took' : 'Drew'}
                     </p>
@@ -190,7 +190,10 @@ function ActionBar({
                       <p className="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider mb-1">
                         {isDiscardFlow ? 'Take it with a swap' : 'Swap with slot'}
                       </p>
-                      <div className="flex gap-1.5">
+                      <div
+                        className="grid gap-1.5"
+                        style={{ gridTemplateColumns: `repeat(auto-fit, minmax(${locks.length >= 4 ? '5.25rem' : '6rem'}, 1fr))` }}
+                      >
                         {locks.map((locked, i) => (
                           <button
                             key={i}
@@ -216,7 +219,7 @@ function ActionBar({
                           : 'Finish the discard take by swapping it into one of your slots, or cancel to return it to the discard pile.'}
                       </p>
                     ) : (
-                      <div className="flex gap-1.5">
+                      <div className="flex flex-col gap-1.5 sm:flex-row">
                         {canDiscard && (
                           <button
                             onClick={onDiscard}

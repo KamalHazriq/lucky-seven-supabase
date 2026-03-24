@@ -93,7 +93,7 @@ export default function DrawnCardModal({
             animate={{ scale: 1, y: 0, opacity: 1 }}
             exit={{ scale: 0.88, y: 20, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 300, damping: 24, mass: 0.7 }}
-            className="rounded-2xl p-6 max-w-sm w-full shadow-2xl relative border"
+            className="relative max-h-[min(90dvh,44rem)] w-full max-w-sm overflow-y-auto rounded-2xl border p-4 shadow-2xl sm:p-6"
             style={{ background: 'var(--surface-solid)', borderColor: 'var(--border-solid)' }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -141,7 +141,7 @@ export default function DrawnCardModal({
               <p className="text-[11px] text-center mb-2 font-medium uppercase tracking-wide" style={{ color: 'var(--text-dim)' }}>
                 Your cards
               </p>
-              <div className="flex gap-2 justify-center">
+              <div className="flex flex-wrap justify-center gap-2">
                 {locks.map((locked, i) => {
                   const known = knownCards[String(i)]
                   return (
@@ -168,13 +168,16 @@ export default function DrawnCardModal({
                   : `Swap with one of your cards, discard${effectInfo ? ', or use its power.' : '.'}`}
               </p>
 
-              <div className="flex gap-2 justify-center mb-3">
+              <div
+                className="mb-3 grid gap-2"
+                style={{ gridTemplateColumns: `repeat(auto-fit, minmax(${locks.length >= 4 ? '7rem' : '8rem'}, 1fr))` }}
+              >
                 {locks.map((locked, i) => (
                   <button
                     key={i}
                     onClick={() => onSwap(i)}
                     disabled={locked}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+                    className={`w-full rounded-lg px-3 py-2 text-sm font-medium transition-colors sm:w-auto sm:px-4 cursor-pointer ${
                       locked
                         ? 'bg-slate-700 text-slate-500 cursor-not-allowed opacity-50'
                         : 'bg-indigo-600 hover:bg-indigo-500 text-white'

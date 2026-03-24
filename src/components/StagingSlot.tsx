@@ -90,8 +90,8 @@ const StagingSlot = memo(forwardRef<HTMLDivElement, StagingSlotProps>(
     return (
       <div
         ref={ref}
-        className={`text-center relative ${active && !perfMode ? 'staging-active' : ''}`}
-        style={{ minWidth: '64px', borderRadius: '12px' }}
+        className={`relative min-w-[4.25rem] text-center sm:min-w-20 ${active && !perfMode ? 'staging-active' : ''}`}
+        style={{ borderRadius: '12px' }}
       >
         <p className={`text-[10px] mb-1 font-medium ${active ? 'text-primary' : 'text-muted-foreground'}`}>
           {active ? (pending ? 'Resolving' : 'In play') : '\u00A0'}
@@ -171,7 +171,7 @@ const StagingSlot = memo(forwardRef<HTMLDivElement, StagingSlotProps>(
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={SPRING_EXIT}
-              className="w-20 h-28 rounded-xl border-2 border-dashed border-border-subtle flex items-center justify-center"
+              className="flex h-24 w-[4.25rem] items-center justify-center rounded-xl border-2 border-dashed border-border-subtle sm:h-28 sm:w-20"
             >
               <span className="text-muted-foreground/30 text-[10px]" />
             </motion.div>

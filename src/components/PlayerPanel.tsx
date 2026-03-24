@@ -129,7 +129,7 @@ function PlayerPanel({
   }), [color.solid, isCurrentTurn, perfMode])
 
   const panelClassName = useMemo(() => `
-    relative rounded-2xl ${isLocalPlayer ? 'p-4' : 'px-2.5 py-2.5 pb-3'} backdrop-blur-sm transition-opacity
+    relative rounded-2xl ${isLocalPlayer ? 'p-3 sm:p-4' : 'px-2 py-2 pb-2.5 sm:px-2.5 sm:py-2.5 sm:pb-3'} backdrop-blur-sm transition-opacity
     ${panelDimmed ? 'opacity-40' : ''}
     ${isLocalPlayer && isCurrentTurn
       ? `bg-emerald-900/30 border border-amber-500/40 ring-1 ring-emerald-500/20${perfMode ? '' : ' turn-glow'}`
@@ -190,43 +190,43 @@ function PlayerPanel({
         </motion.div>
       )}
 
-      <div className="flex items-center gap-1.5 mb-2.5">
+      <div className="mb-2 flex min-w-0 flex-wrap items-center gap-1.5 sm:mb-2.5">
         <div
           className="w-2 h-2 rounded-full shrink-0"
           style={{ backgroundColor: connected ? color.solid : '#64748b' }}
         />
         <span
-          className="font-semibold text-sm truncate"
+          className="min-w-0 flex-1 truncate text-[13px] font-semibold sm:text-sm"
           style={{ color: isLocalPlayer ? '#fcd34d' : color.text }}
         >
           {displayName}
         </span>
         {queueNumber != null && (
           <span
-            className="px-1 py-0.5 rounded text-[9px] font-bold shrink-0"
+            className="shrink-0 rounded px-1 py-0.5 text-[8px] font-bold sm:text-[9px]"
             style={{ backgroundColor: color.bg, color: color.text }}
           >
             #{queueNumber}
           </span>
         )}
         {isLocalPlayer && (
-          <span className="px-1.5 py-0.5 bg-amber-500/15 text-amber-300 text-[9px] font-bold rounded shrink-0">
+          <span className="shrink-0 rounded bg-amber-500/15 px-1.5 py-0.5 text-[8px] font-bold text-amber-300 sm:text-[9px]">
             YOU
           </span>
         )}
         {isCurrentTurn && (
-          <span className="ml-auto text-[10px] font-semibold text-emerald-400 animate-pulse motion-reduce:animate-none shrink-0">
+          <span className="ml-auto shrink-0 text-[9px] font-semibold text-emerald-400 animate-pulse motion-reduce:animate-none sm:text-[10px]">
             {isLocalPlayer ? 'Your turn' : 'Playing...'}
           </span>
         )}
         {isPlayerTarget && (
-          <span className="ml-auto px-2 py-0.5 bg-amber-500/30 border border-amber-400/60 text-amber-200 text-[10px] font-bold rounded-md animate-pulse shrink-0 shadow-sm shadow-amber-500/20">
+          <span className="ml-auto shrink-0 rounded-md border border-amber-400/60 bg-amber-500/30 px-2 py-0.5 text-[9px] font-bold text-amber-200 animate-pulse shadow-sm shadow-amber-500/20 sm:text-[10px]">
             TAP TO SELECT
           </span>
         )}
       </div>
 
-      <div className={`flex ${isLocalPlayer ? 'gap-3' : 'gap-1.5 sm:gap-2'} justify-center overflow-visible`}>
+      <div className={`flex w-full items-start justify-center ${isLocalPlayer ? 'gap-2 sm:gap-3' : 'gap-1.5 sm:gap-2'} overflow-visible`}>
         {Array.from({ length: cardsPerPlayer }, (_, i) => i).map((i) => {
           const card = hand[i] as Card | undefined
           // Own known: from game_private_state.known (self peek, swap)

@@ -379,8 +379,11 @@ export default function Game() {
     />
   )
 
+  const centeredShellClass = 'w-full max-w-6xl xl:max-w-7xl mx-auto'
+  const classicPanelMinWidth = otherPlayers.length <= 2 ? '18rem' : otherPlayers.length <= 4 ? '15.5rem' : '14.5rem'
+
   return (
-    <div className={`min-h-dvh flex flex-col ${logPosition === 'left' ? '' : 'max-w-5xl mx-auto'}`}>
+    <div className={`min-h-dvh w-full overflow-x-clip flex flex-col ${logPosition === 'left' ? '' : centeredShellClass}`}>
       {/* ─── Sticky Top Bar (v1.5 — 3-zone layout) ──────────── */}
       <div
         ref={headerRef}
@@ -447,12 +450,12 @@ export default function Game() {
       </div>
 
       {/* ─── Main Content ─────────────────────────────────────── */}
-      <div className={`flex-1 ${logPosition === 'left' ? 'flex' : 'flex flex-col p-3 md:p-4'}`}>
+      <div className={`flex-1 ${logPosition === 'left' ? 'flex' : 'flex flex-col p-2.5 sm:p-3 md:p-4'}`}>
 
         {/* Left sidebar log — matches table zone height, scrolls internally */}
         {logPosition === 'left' && (
           <aside
-            className="shrink-0 w-56 min-h-0 sticky self-start overflow-y-auto border-r pt-1 px-2"
+            className="sticky self-start shrink-0 min-h-0 w-56 overflow-y-auto border-r px-2 pt-1 xl:w-60"
             style={{
               top: 'var(--top-offset, 56px)',
               height: 'calc(100dvh - var(--top-offset, 56px) - 2rem)',
@@ -464,7 +467,7 @@ export default function Game() {
           </aside>
         )}
 
-        <div className={`${logPosition === 'left' ? 'flex-1 min-w-0 flex flex-col max-w-5xl mx-auto p-3 md:p-4 w-full' : 'contents'}`}>
+        <div className={`${logPosition === 'left' ? `flex-1 min-w-0 flex flex-col ${centeredShellClass} p-2.5 sm:p-3 md:p-4` : 'contents'}`}>
 
         {/* Turn queue — mobile only (desktop shows in top bar) */}
         <div className="md:hidden">
@@ -490,10 +493,10 @@ export default function Game() {
               transition={{ type: 'spring', stiffness: 300, damping: 24, mass: 0.6 }}
               aria-live="polite"
               aria-atomic="true"
-              className={`flex items-center justify-center gap-2 py-2.5 px-5 rounded-xl mb-3 font-semibold tracking-wide ${
+              className={`mb-3 flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-center font-semibold leading-relaxed tracking-wide sm:px-5 sm:py-2.5 ${
                 isMyTurn
-                  ? 'bg-emerald-900/30 border border-emerald-500/40 text-emerald-300 shadow-md shadow-emerald-500/10 text-sm'
-                  : 'bg-surface-panel border border-border-subtle text-muted-foreground text-xs'
+                  ? 'bg-emerald-900/30 border border-emerald-500/40 text-emerald-300 shadow-md shadow-emerald-500/10 text-xs sm:text-sm'
+                  : 'bg-surface-panel border border-border-subtle text-muted-foreground text-[11px] sm:text-xs'
               }`}
             >
               {isMyTurn ? (
@@ -520,7 +523,11 @@ export default function Game() {
           /* ─── TABLE LAYOUT ─── Poker-table circular arrangement ─── */
           (() => {
             const seatPositions = getSeatPositions(otherPlayers.length)
-            const panelW = otherPlayers.length <= 3 ? '220px' : otherPlayers.length <= 5 ? '205px' : '190px'
+            const tablePanelWidth = otherPlayers.length <= 3
+              ? 'clamp(11.5rem, 18vw, 13.75rem)'
+              : otherPlayers.length <= 5
+                ? 'clamp(10.75rem, 15vw, 12.75rem)'
+                : 'clamp(10rem, 13vw, 11.875rem)'
             return (
               <>
               <div
@@ -599,9 +606,7 @@ export default function Game() {
                         left: `${pos.left}%`,
                         top: `${pos.top}%`,
                         transform: 'translate(-50%, -50%)',
-                        maxWidth: panelW,
-                        width: otherPlayers.length <= 4 ? '42%' : otherPlayers.length <= 6 ? '38%' : '35%',
-                        minWidth: otherPlayers.length <= 5 ? '190px' : '175px',
+                        width: tablePanelWidth,
                         overflow: 'visible',
                       }}
                     >
@@ -640,7 +645,13 @@ export default function Game() {
                 <div
                   className="absolute left-1/2 z-10"
                   ref={localPanelRef}
-                  style={{ bottom: 'max(8px, env(safe-area-inset-bottom, 8px))', transform: 'translateX(-50%)', maxWidth: cardsPerPlayer >= 4 ? '420px' : '340px', width: cardsPerPlayer >= 4 ? '96%' : '82%' }}
+                  style={{
+                    bottom: 'max(8px, env(safe-area-inset-bottom, 8px))',
+                    transform: 'translateX(-50%)',
+                    width: cardsPerPlayer >= 4
+                      ? 'clamp(22rem, 42vw, 28rem)'
+                      : 'clamp(19rem, 36vw, 23rem)',
+                  }}
                 >
                   <PlayerPanel
                     playerId={user.uid}
@@ -677,7 +688,10 @@ export default function Game() {
               </div>
               {/* Action Bar for table layout — below table zone, clear gap */}
               {!isSpectator && uiMode === 'actionbar' && (
-                <div className="mx-auto mb-4 mt-2" style={{ maxWidth: cardsPerPlayer >= 4 ? '460px' : '380px', width: '90%' }}>
+                <div
+                  className="mx-auto mb-4 mt-2 w-full"
+                  style={{ maxWidth: cardsPerPlayer >= 4 ? '34rem' : '30rem' }}
+                >
                   <ActionBar
                     card={isMyTurn && hasActiveCard ? activeCard : null}
                     visible={modal.type === 'none' && (!drawnCardDismissed || activeCardSource !== 'pile')}
@@ -707,11 +721,10 @@ export default function Game() {
           <>
             {/* Other players */}
             {otherPlayers.length > 0 && (
-              <div className={`grid gap-3 mb-4 ${
-                otherPlayers.length <= 2 ? 'grid-cols-1 sm:grid-cols-2' :
-                otherPlayers.length <= 4 ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' :
-                'grid-cols-2 sm:grid-cols-3 lg:grid-cols-3'
-              }`}>
+              <div
+                className="mb-4 grid gap-2.5 sm:gap-3"
+                style={{ gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, ${classicPanelMinWidth}), 1fr))` }}
+              >
                 {otherPlayers.map((pid) => {
                   const isTheirTurn = game.currentTurnPlayerId === pid
                   return (
@@ -753,7 +766,7 @@ export default function Game() {
             )}
 
             {/* Table area: Draw + Staging + Discard */}
-            <div className="classic-pile-zone flex items-center justify-center gap-5 sm:gap-6 mb-4" aria-busy={busy} aria-label="Card piles">
+            <div className="classic-pile-zone mb-4 flex flex-wrap items-center justify-center gap-3 sm:gap-5 md:gap-6" aria-busy={busy} aria-label="Card piles">
               <div className={`text-center${canDraw ? ' pile-interactive' : ''}`} ref={drawPileRef}>
                 <p className="text-xs text-muted-foreground mb-2">Draw Pile</p>
                 <div className="pile-stack">
@@ -803,7 +816,11 @@ export default function Game() {
 
             {/* Local player (hidden for spectators) */}
             {!isSpectator && (
-            <div className="mb-4" ref={localPanelRef}>
+            <div
+              className="mx-auto mb-4 w-full"
+              ref={localPanelRef}
+              style={{ maxWidth: cardsPerPlayer >= 4 ? '36rem' : '32rem' }}
+            >
               <PlayerPanel
                 playerId={user.uid}
                 displayName={players[user.uid]?.displayName ?? 'You'}
@@ -836,25 +853,27 @@ export default function Game() {
               )}
               {/* Action Bar — inline alternative to drawn card modal */}
               {!isSpectator && uiMode === 'actionbar' && (
-                <ActionBar
-                  card={isMyTurn && hasActiveCard ? activeCard : null}
-                  visible={modal.type === 'none' && (!drawnCardDismissed || activeCardSource !== 'pile')}
-                  locks={myLocks}
-                  powerAssignments={powerAssignments}
-                  spentPowerCardIds={spentPowerCardIds}
-                  drawnCardSource={activeCardSource}
-                  onSwap={handleSwap}
-                  onDiscard={handleDiscard}
-                  onUsePower={handleUsePower}
-                  onClose={handleCancelDraw}
-                  selection={selection}
-                  onSelectionConfirm={handleSelectionConfirm}
-                  onSelectionCancel={cancelSelection}
-                  onSelectionGoBack={goBackSelection}
-                  isDesktop={isDesktop}
-                  players={players}
-                  hasAnyLocks={hasAnyLocks}
-                />
+                <div className="w-full" style={{ maxWidth: cardsPerPlayer >= 4 ? '34rem' : '30rem' }}>
+                  <ActionBar
+                    card={isMyTurn && hasActiveCard ? activeCard : null}
+                    visible={modal.type === 'none' && (!drawnCardDismissed || activeCardSource !== 'pile')}
+                    locks={myLocks}
+                    powerAssignments={powerAssignments}
+                    spentPowerCardIds={spentPowerCardIds}
+                    drawnCardSource={activeCardSource}
+                    onSwap={handleSwap}
+                    onDiscard={handleDiscard}
+                    onUsePower={handleUsePower}
+                    onClose={handleCancelDraw}
+                    selection={selection}
+                    onSelectionConfirm={handleSelectionConfirm}
+                    onSelectionCancel={cancelSelection}
+                    onSelectionGoBack={goBackSelection}
+                    isDesktop={isDesktop}
+                    players={players}
+                    hasAnyLocks={hasAnyLocks}
+                  />
+                </div>
               )}
             </div>
             )}
@@ -1026,7 +1045,7 @@ export default function Game() {
 
       <VersionLabel onOpenFeedback={() => setShowFeedback(true)} />
 
-      <div className="fixed bottom-2 right-3 text-xs md:text-sm font-medium select-none z-10" style={{ color: 'var(--watermark)' }}>
+      <div className="fixed bottom-2 right-3 hidden select-none text-xs font-medium z-10 md:block md:text-sm" style={{ color: 'var(--watermark)' }}>
         Built by Kamal Hazriq
       </div>
     </div>

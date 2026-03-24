@@ -47,7 +47,7 @@ function GameLog({ log, players, position = 'bottom' }: GameLogProps) {
 
   return (
     <div
-      className={`rounded-xl border flex flex-col overflow-hidden ${isLeft ? 'h-full' : 'max-h-48'}`}
+      className={`rounded-xl border flex flex-col overflow-hidden ${isLeft ? 'h-full' : 'max-h-40 sm:max-h-48'}`}
       style={{ background: 'var(--panel)', borderColor: 'var(--border)' }}
     >
       {/* Sticky header */}

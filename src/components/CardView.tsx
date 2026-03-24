@@ -48,9 +48,9 @@ interface CardViewProps {
 }
 
 const sizes = {
-  sm: 'w-14 min-w-0 h-20 text-xs',
-  md: 'w-20 h-28 text-sm',
-  lg: 'w-24 h-34 text-base',
+  sm: 'w-12 min-w-0 h-[4.25rem] text-xs sm:w-14 sm:h-20',
+  md: 'w-[4.25rem] h-24 text-sm sm:w-20 sm:h-28',
+  lg: 'w-20 h-28 text-base sm:w-24 sm:h-34',
 }
 
 function CardView({

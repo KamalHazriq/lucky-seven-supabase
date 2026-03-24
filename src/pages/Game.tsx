@@ -146,20 +146,7 @@ export default function Game() {
   // Derived state
   const drawnCard = privateState?.drawnCard ?? null
   const hasDrawnCard = !!drawnCard
-  // Staging is active when choreography says so, OR as a fallback when the
-  // local player has an unresolved active card (keeps center slot filled even
-  // if the choreography flight hasn't settled yet).
   const choreoStaging = choreo.phase === 'staging'
-  const localCardFallback = isMyTurn && hasActiveCard
-  const stagingActive = choreoStaging || localCardFallback
-  const stagingCard = (choreoStaging && choreo.staging.card)
-    ? choreo.staging.card
-    : (localCardFallback ? activeCard : null)
-  const stagingFaceUp = (choreoStaging && choreo.staging.faceUp)
-    ? true
-    : !!(localCardFallback && activeCard)
-  const stagingOwnerColor = choreoStaging ? choreo.staging.ownerColor : undefined
-  const stagingPending = choreoStaging ? !!choreo.staging.pending : false
 
   // Reset dismissed state when drawn card is consumed/cleared
   useEffect(() => {
@@ -257,6 +244,20 @@ export default function Game() {
     noMemoryMode,
     cardsPerPlayer,
   })
+
+  // Staging is active when choreography says so, OR as a fallback when the
+  // local player has an unresolved active card (keeps center slot filled even
+  // if the choreography flight hasn't settled yet).
+  const localCardFallback = isMyTurn && hasActiveCard
+  const stagingActive = choreoStaging || localCardFallback
+  const stagingCard = (choreoStaging && choreo.staging.card)
+    ? choreo.staging.card
+    : (localCardFallback ? activeCard : null)
+  const stagingFaceUp = (choreoStaging && choreo.staging.faceUp)
+    ? true
+    : !!(localCardFallback && activeCard)
+  const stagingOwnerColor = choreoStaging ? choreo.staging.ownerColor : undefined
+  const stagingPending = choreoStaging ? !!choreo.staging.pending : false
 
   const isDiscardFlow = activeCardSource === 'discard' || activeCardSource === 'discard-preview'
   const canResolveActiveCard = isMyTurn && (isActionPhase || isDiscardFlow)

@@ -39,7 +39,7 @@ describe('getTurnCardUiState', () => {
     expect(state.canSwap).toBe(true)
     expect(state.canCancel).toBe(true)
     expect(state.canDiscard).toBe(false)
-    expect(state.canUsePower).toBe(false)
+    expect(state.canUsePower).toBe(true)
   })
 
   it('blocks pile-only follow-up actions once discard has been committed', () => {

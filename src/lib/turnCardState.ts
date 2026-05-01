@@ -42,6 +42,6 @@ export function getTurnCardUiState({
     canSwap: hasActiveCard,
     canCancel: hasActiveCard && isDiscardFlow,
     canDiscard: hasActiveCard && activeCardSource === 'pile',
-    canUsePower: hasActiveCard && activeCardSource === 'pile',
+    canUsePower: hasActiveCard && (activeCardSource === 'pile' || activeCardSource === 'discard-preview'),
   }
 }

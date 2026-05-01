@@ -420,8 +420,21 @@ export function useGameActions(params: UseGameActionsParams): UseGameActionsRetu
   // ─── Choreography flight completion ────────────
 
   // ─── Power handlers ────────────────────────────
-  const handleUsePower = (rankKey: PowerRankKey, effectType: PowerEffectType) => {
+  const handleUsePower = async (rankKey: PowerRankKey, effectType: PowerEffectType) => {
     if (!canUsePowerWithActiveCard) return
+
+    // If taken from discard (preview), commit the pick before opening power UI
+    if (activeCardSource === 'discard-preview' && activeCard) {
+      const cardToKeep = activeCard
+      let committed = false
+      await withBusy(async () => {
+        await takeFromDiscard(gameId!)
+        committed = true
+      })
+      if (!committed) return
+      setLocalTurnCardOverride({ card: cardToKeep, source: 'discard' })
+    }
+
     // If peek power with opponent peek enabled, show choice first
     const isPeek = effectType === 'peek_one_of_your_cards' || effectType === 'peek_all_three_of_your_cards'
     if (isPeek && peekAllowsOpponent) {

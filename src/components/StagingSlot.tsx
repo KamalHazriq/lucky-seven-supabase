@@ -154,7 +154,7 @@ const StagingSlot = memo(forwardRef<HTMLDivElement, StagingSlotProps>(
                   ? { opacity: SPRING_ENTRY, scale: SPRING_ENTRY, default: SPRING_EXIT }
                   : { opacity: SPRING_ENTRY, scale: SPRING_ENTRY, y: FLOAT_CONFIG, default: SPRING_EXIT }
                 }
-                style={{ willChange: 'transform, opacity', touchAction: interactive ? 'none' : undefined }}
+                style={{ touchAction: interactive ? 'none' : undefined }}
               >
                 <CardView
                   card={faceUp ? card : undefined}
